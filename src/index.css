@@ -1,7 +1,7 @@
 :root {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   color: #1f2a44;
-  background: #f4f7fb;
+  background: #eef3f9;
 }
 
 * {
@@ -15,6 +15,7 @@ body {
 
 h1,
 h2,
+h3,
 p {
   margin: 0;
 }
@@ -27,12 +28,12 @@ p {
 }
 
 .card {
-  width: min(920px, 100%);
+  width: min(1120px, 100%);
   background: #ffffff;
   border: 1px solid #dbe2ef;
   border-radius: 14px;
   padding: 24px;
-  box-shadow: 0 8px 30px rgba(18, 32, 70, 0.07);
+  box-shadow: 0 10px 30px rgba(18, 32, 70, 0.08);
 }
 
 .auth-card {
@@ -44,17 +45,32 @@ p {
   margin-top: 8px;
 }
 
+.small {
+  font-size: 0.9rem;
+}
+
+.message {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #ccd8ee;
+  background: #f5f8ff;
+  color: #1f2a44;
+}
+
 .card-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
 }
 
-.auth-tabs {
-  margin-top: 20px;
+.auth-tabs,
+.tab-row {
+  margin-top: 16px;
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .tab {
@@ -83,11 +99,19 @@ label {
   font-weight: 600;
 }
 
-input {
+input,
+select,
+textarea {
   border: 1px solid #ccd5e3;
   border-radius: 10px;
   padding: 10px 12px;
   font: inherit;
+  background: #ffffff;
+  color: inherit;
+}
+
+textarea {
+  resize: vertical;
 }
 
 button {
@@ -111,42 +135,148 @@ button:disabled {
   cursor: default;
 }
 
-.message {
-  margin-top: 12px;
-  color: #203252;
+.section {
+  margin-top: 16px;
 }
 
-.feature-grid {
-  margin-top: 18px;
+.grid {
   display: grid;
   gap: 12px;
+}
+
+.grid.two {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.feature {
+.grid.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.table-wrap {
+  overflow-x: auto;
   border: 1px solid #dde5f2;
   border-radius: 12px;
-  padding: 14px;
-  background: #fbfdff;
+  margin-top: 10px;
 }
 
-.feature h2 {
-  font-size: 1.02rem;
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 680px;
 }
 
-.feature p {
-  margin-top: 8px;
-  color: #5b6a86;
-  line-height: 1.4;
+th,
+td {
+  text-align: left;
+  border-bottom: 1px solid #e7edf8;
+  padding: 10px;
+  vertical-align: top;
 }
 
-@media (max-width: 760px) {
-  .feature-grid {
+th {
+  background: #f8fbff;
+}
+
+.qty-input {
+  width: 90px;
+}
+
+.total-row {
+  margin-top: 10px;
+  font-weight: 700;
+}
+
+.status {
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.82rem;
+  text-transform: capitalize;
+  border: 1px solid transparent;
+  display: inline-block;
+}
+
+.status-requested {
+  background: #eef2ff;
+  border-color: #d3dbff;
+  color: #2d3f8f;
+}
+
+.status-scheduled {
+  background: #eaf6ff;
+  border-color: #cbe9ff;
+  color: #15507e;
+}
+
+.status-in_progress {
+  background: #fff8e7;
+  border-color: #ffe3ab;
+  color: #7f5a05;
+}
+
+.status-completed {
+  background: #e9f8ee;
+  border-color: #bfebcc;
+  color: #1d6b34;
+}
+
+.status-cancelled {
+  background: #ffeeee;
+  border-color: #ffd0d0;
+  color: #9d2c2c;
+}
+
+.order-list {
+  margin-top: 12px;
+  display: grid;
+  gap: 12px;
+}
+
+.order-card {
+  border: 1px solid #dde5f2;
+  border-radius: 12px;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.order-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.faq-form {
+  border: 1px solid #dde5f2;
+  border-radius: 12px;
+  padding: 12px;
+  background: #f9fbff;
+}
+
+.faq-list {
+  margin-top: 12px;
+  display: grid;
+  gap: 12px;
+}
+
+.faq-item {
+  border: 1px solid #dde5f2;
+  border-radius: 12px;
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.faq-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+@media (max-width: 900px) {
+  .grid.two,
+  .grid.three {
     grid-template-columns: 1fr;
-  }
-
-  .card-header {
-    flex-direction: column;
-    align-items: flex-start;
   }
 }
