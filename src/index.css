@@ -1,0 +1,152 @@
+:root {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #1f2a44;
+  background: #f4f7fb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+.page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.card {
+  width: min(920px, 100%);
+  background: #ffffff;
+  border: 1px solid #dbe2ef;
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0 8px 30px rgba(18, 32, 70, 0.07);
+}
+
+.auth-card {
+  width: min(460px, 100%);
+}
+
+.muted {
+  color: #5c6b87;
+  margin-top: 8px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.auth-tabs {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+}
+
+.tab {
+  border: 1px solid #ccd5e3;
+  background: #ffffff;
+  color: #203252;
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.tab.active {
+  border-color: #315bcb;
+  background: #edf2ff;
+}
+
+.form {
+  margin-top: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+label {
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+}
+
+input {
+  border: 1px solid #ccd5e3;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: inherit;
+}
+
+button {
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font: inherit;
+  background: #315bcb;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+button.secondary {
+  background: #ffffff;
+  color: #203252;
+  border-color: #ccd5e3;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.message {
+  margin-top: 12px;
+  color: #203252;
+}
+
+.feature-grid {
+  margin-top: 18px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.feature {
+  border: 1px solid #dde5f2;
+  border-radius: 12px;
+  padding: 14px;
+  background: #fbfdff;
+}
+
+.feature h2 {
+  font-size: 1.02rem;
+}
+
+.feature p {
+  margin-top: 8px;
+  color: #5b6a86;
+  line-height: 1.4;
+}
+
+@media (max-width: 760px) {
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
