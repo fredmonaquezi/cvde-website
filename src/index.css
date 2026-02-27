@@ -49,13 +49,55 @@ p {
   font-size: 0.9rem;
 }
 
-.message {
-  margin-top: 12px;
-  padding: 10px 12px;
+.toast-viewport {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 1000;
+  display: grid;
+  gap: 10px;
+  width: min(420px, calc(100vw - 24px));
+}
+
+.toast {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
   border-radius: 10px;
-  border: 1px solid #ccd8ee;
-  background: #f5f8ff;
+  border: 1px solid transparent;
+  padding: 10px 12px;
+  box-shadow: 0 8px 24px rgba(18, 32, 70, 0.14);
+  background: #ffffff;
+}
+
+.toast p {
+  margin: 0;
   color: #1f2a44;
+}
+
+.toast-success {
+  border-color: #bfe7cb;
+  background: #ebf9f0;
+}
+
+.toast-error {
+  border-color: #f4bcbc;
+  background: #fff1f1;
+}
+
+.toast-info {
+  border-color: #c6d6f8;
+  background: #f1f6ff;
+}
+
+.toast-close {
+  border: 0;
+  background: transparent;
+  color: #4f607f;
+  padding: 0;
+  line-height: 1;
+  font-size: 1rem;
 }
 
 .card-header {
@@ -63,6 +105,63 @@ p {
   justify-content: space-between;
   align-items: flex-start;
   gap: 12px;
+}
+
+.shell-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-title {
+  font-size: 1.3rem;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.profile-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #ccd5e3;
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: #ffffff;
+  color: #203252;
+  cursor: pointer;
+}
+
+.profile-trigger.active {
+  border-color: #315bcb;
+  background: #edf2ff;
+}
+
+.profile-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  background: #173a8f;
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.welcome-title {
+  margin-top: 16px;
+  font-size: 1.7rem;
 }
 
 .auth-tabs,
@@ -97,6 +196,23 @@ label {
   display: grid;
   gap: 6px;
   font-weight: 600;
+}
+
+.field-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.field-required {
+  color: #b92020;
+  font-weight: 700;
+}
+
+.field-optional {
+  color: #6d7c97;
+  font-size: 0.82rem;
+  font-weight: 500;
 }
 
 input,
@@ -137,6 +253,49 @@ button:disabled {
 
 .section {
   margin-top: 16px;
+}
+
+.landing-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.landing-card {
+  border: 1px solid #dbe5f4;
+  border-radius: 12px;
+  background: #fbfdff;
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.landing-card p {
+  color: #5b6a86;
+}
+
+.profile-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.profile-panel {
+  border: 1px solid #dde5f2;
+  border-radius: 12px;
+  padding: 14px;
+  background: #fbfdff;
+}
+
+.registration-gate {
+  border: 1px solid #dde5f2;
+  border-radius: 12px;
+  padding: 16px;
+  background: #fbfdff;
+}
+
+input[readonly] {
+  background: #f5f7fc;
 }
 
 .grid {
@@ -201,6 +360,18 @@ th {
   color: #2d3f8f;
 }
 
+.status-active {
+  background: #e9f8ee;
+  border-color: #bfebcc;
+  color: #1d6b34;
+}
+
+.status-inactive {
+  background: #ffeeee;
+  border-color: #ffd0d0;
+  color: #9d2c2c;
+}
+
 .status-scheduled {
   background: #eaf6ff;
   border-color: #cbe9ff;
@@ -253,6 +424,15 @@ th {
   background: #f9fbff;
 }
 
+.inline-form {
+  grid-template-columns: 2fr 2fr 1fr auto;
+  align-items: end;
+  border: 1px solid #dde5f2;
+  border-radius: 12px;
+  padding: 12px;
+  background: #f9fbff;
+}
+
 .faq-list {
   margin-top: 12px;
   display: grid;
@@ -274,9 +454,27 @@ th {
   gap: 10px;
 }
 
+.row-actions {
+  display: grid;
+  gap: 8px;
+}
+
 @media (max-width: 900px) {
+  .shell-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
   .grid.two,
-  .grid.three {
+  .grid.three,
+  .inline-form,
+  .landing-grid,
+  .profile-layout {
     grid-template-columns: 1fr;
   }
 }
