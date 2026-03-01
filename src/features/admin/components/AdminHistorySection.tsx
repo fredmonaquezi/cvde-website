@@ -18,6 +18,15 @@ type HistoryRow = {
   created_at: string
 }
 
+type ExportOrderRow = {
+  order_id: number
+  created_at: string
+  clinic_name: string
+  vet_name: string
+  exams_cell: string
+  total_value: number
+}
+
 const RANGE_LABELS: Record<HistoryRange, string> = {
   '3d': 'Last 3 days',
   '7d': 'Last 7 days',
@@ -27,46 +36,53 @@ const RANGE_LABELS: Record<HistoryRange, string> = {
   all: 'All time',
 }
 
+const EXPORT_RANGE_LABELS: Record<HistoryRange, string> = {
+  '3d': 'Últimos 3 dias',
+  '7d': 'Últimos 7 dias',
+  '30d': 'Últimos 30 dias',
+  '90d': 'Últimos 90 dias',
+  '365d': 'Últimos 12 meses',
+  all: 'Todo o período',
+}
+
 function escapeCsvValue(value: string | number): string {
   const normalized = String(value)
   const escaped = normalized.replace(/"/g, '""')
   return `"${escaped}"`
 }
 
-function buildCsvContent(
-  rows: HistoryRow[],
-  options: {
-    rangeLabel: string
-    vetLabel: string
-    clinicLabel: string
-    examLabel: string
-    generatedAt: string
-    totalValue: string
-  },
-): string {
-  const summaryRows = [
-    ['Report', 'CVDE Exam History Export'],
-    ['Generated At', options.generatedAt],
-    ['Time Range', options.rangeLabel],
-    ['Vet Filter', options.vetLabel],
-    ['Clinic Filter', options.clinicLabel],
-    ['Exam Filter', options.examLabel],
-    ['Total Exam Items', rows.length],
-    ['Total Value', options.totalValue],
+function formatExportDate(value: string): string {
+  const date = new Date(value)
+  const day = String(date.getDate()).padStart(2, '0')
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const year = date.getFullYear()
+  return `${day}/${month}/${year}`
+}
+
+function formatExportCurrency(value: number): string {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(value)
+}
+
+function buildCsvContent(rows: ExportOrderRow[], periodLabel: string): string {
+  const headerRows = [
+    [`CVDE Relatório do "${periodLabel}"`],
     [],
-    ['Order ID', 'Ordered At', 'Exam', 'Vet', 'Clinic', 'Value'],
+    ['ID', 'Data', 'Clínica Veterinária', 'Nome do Veterinário', 'Exames', 'Valor'],
   ]
 
   const detailRows = rows.map((row) => [
     row.order_id,
-    formatDateTime(row.created_at),
-    row.exam_name,
-    row.vet_name,
+    formatExportDate(row.created_at),
     row.clinic_name,
-    formatCurrency(row.exam_value),
+    row.vet_name,
+    row.exams_cell,
+    formatExportCurrency(row.total_value),
   ])
 
-  return [...summaryRows, ...detailRows]
+  return [...headerRows, ...detailRows]
     .map((line) => line.map((cell) => escapeCsvValue(cell)).join(','))
     .join('\r\n')
 }
@@ -183,15 +199,24 @@ export default function AdminHistorySection({ orders }: AdminHistorySectionProps
     [filteredRows],
   )
 
+  const exportRows = useMemo<ExportOrderRow[]>(() => {
+    const includedOrderIds = new Set(filteredRows.map((row) => row.order_id))
+
+    return orders
+      .filter((order) => includedOrderIds.has(order.id))
+      .sort((left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime())
+      .map((order) => ({
+        order_id: order.id,
+        created_at: order.created_at,
+        clinic_name: order.vet_clinic_name ?? '',
+        vet_name: order.vet_name_snapshot ?? 'Unknown',
+        exams_cell: order.selected_exams.map((exam) => exam.exam_name).join('\n'),
+        total_value: order.total_value,
+      }))
+  }, [filteredRows, orders])
+
   const handleExportCsv = () => {
-    const csvContent = buildCsvContent(filteredRows, {
-      rangeLabel: RANGE_LABELS[range],
-      vetLabel: vetFilter === 'all' ? 'All vets' : vetFilter,
-      clinicLabel: clinicFilter === 'all' ? 'All clinics' : clinicFilter,
-      examLabel: examFilter === 'all' ? 'All exams' : examFilter,
-      generatedAt: new Date().toLocaleString(),
-      totalValue: formatCurrency(totalValue),
-    })
+    const csvContent = buildCsvContent(exportRows, EXPORT_RANGE_LABELS[range])
 
     downloadCsvFile(buildExportFileName(), csvContent)
   }
@@ -206,7 +231,7 @@ export default function AdminHistorySection({ orders }: AdminHistorySectionProps
             type.
           </p>
         </div>
-        <button type="button" onClick={handleExportCsv} disabled={filteredRows.length === 0}>
+        <button type="button" onClick={handleExportCsv} disabled={exportRows.length === 0}>
           Export Filtered CSV
         </button>
       </div>
