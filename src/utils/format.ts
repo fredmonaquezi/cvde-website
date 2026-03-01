@@ -43,11 +43,14 @@ export function parseSelectedExams(value: unknown): SelectedExam[] {
         item !== null &&
         'exam_id' in item &&
         'exam_name' in item &&
-        'unit_price' in item &&
-        'quantity' in item &&
-        'line_total' in item
+        'unit_price' in item
       ) {
-        return item as SelectedExam
+        const exam = item as { exam_id: number; exam_name: string; unit_price: number }
+        return {
+          exam_id: exam.exam_id,
+          exam_name: exam.exam_name,
+          unit_price: exam.unit_price,
+        } as SelectedExam
       }
       return null
     })
@@ -57,4 +60,62 @@ export function parseSelectedExams(value: unknown): SelectedExam[] {
 export function formatDoctorName(fullName: string | null): string {
   const baseName = fullName?.trim() || 'Doctor'
   return /^dr\.?/i.test(baseName) ? baseName : `Dr. ${baseName}`
+}
+
+export function toDigitsOnly(value: string): string {
+  return value.replace(/\D/g, '')
+}
+
+export function formatSsn(value: string): string {
+  const digits = toDigitsOnly(value).slice(0, 11)
+
+  if (digits.length <= 3) {
+    return digits
+  }
+
+  if (digits.length <= 6) {
+    return `${digits.slice(0, 3)}.${digits.slice(3)}`
+  }
+
+  if (digits.length <= 9) {
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`
+  }
+
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`
+}
+
+export function formatPhone(value: string): string {
+  const digits = toDigitsOnly(value).slice(0, 11)
+
+  if (digits.length <= 2) {
+    return digits ? `(${digits}` : ''
+  }
+
+  if (digits.length <= 7) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2)}`
+  }
+
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
+}
+
+export function formatInternationalPhone(value: string): string {
+  const digits = toDigitsOnly(value).slice(0, 13)
+
+  if (digits.length === 0) {
+    return ''
+  }
+
+  if (digits.length <= 2) {
+    return `+${digits}`
+  }
+
+  if (digits.length <= 4) {
+    return `+${digits.slice(0, 2)} (${digits.slice(2)}`
+  }
+
+  if (digits.length <= 9) {
+    return `+${digits.slice(0, 2)} (${digits.slice(2, 4)}) ${digits.slice(4)}`
+  }
+
+  return `+${digits.slice(0, 2)} (${digits.slice(2, 4)}) ${digits.slice(4, 9)}-${digits.slice(9)}`
 }

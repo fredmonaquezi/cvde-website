@@ -5,7 +5,6 @@ import {
   createExam,
   toggleExamActive as toggleExamActiveService,
   updateExamDetails as updateExamDetailsService,
-  updateExamPrice as updateExamPriceService,
 } from '../../../services/adminService'
 import type { ExamCatalogItem } from '../../../types/app'
 import { formatCurrency } from '../../../utils/format'
@@ -22,8 +21,10 @@ export default function AdminExamValuesSection({
   const [priceDrafts, setPriceDrafts] = useState<Record<number, string>>({})
   const [nameDrafts, setNameDrafts] = useState<Record<number, string>>({})
   const [descriptionDrafts, setDescriptionDrafts] = useState<Record<number, string>>({})
+  const [categoryDrafts, setCategoryDrafts] = useState<Record<number, string>>({})
   const [activeDrafts, setActiveDrafts] = useState<Record<number, boolean>>({})
   const [newExamName, setNewExamName] = useState('')
+  const [newExamCategory, setNewExamCategory] = useState('')
   const [newExamDescription, setNewExamDescription] = useState('')
   const [newExamPrice, setNewExamPrice] = useState('')
   const toast = useToast()
@@ -32,12 +33,14 @@ export default function AdminExamValuesSection({
     const nextPriceDrafts: Record<number, string> = {}
     const nextNameDrafts: Record<number, string> = {}
     const nextDescriptionDrafts: Record<number, string> = {}
+    const nextCategoryDrafts: Record<number, string> = {}
     const nextActiveDrafts: Record<number, boolean> = {}
 
     examCatalog.forEach((exam) => {
       nextPriceDrafts[exam.id] = String(exam.current_price)
       nextNameDrafts[exam.id] = exam.name
       nextDescriptionDrafts[exam.id] = exam.description ?? ''
+      nextCategoryDrafts[exam.id] = exam.category ?? ''
       nextActiveDrafts[exam.id] = exam.active
     })
 
@@ -45,35 +48,15 @@ export default function AdminExamValuesSection({
     setPriceDrafts(nextPriceDrafts)
     setNameDrafts(nextNameDrafts)
     setDescriptionDrafts(nextDescriptionDrafts)
+    setCategoryDrafts(nextCategoryDrafts)
     setActiveDrafts(nextActiveDrafts)
   }, [examCatalog])
 
-  const saveExamPrice = async (examId: number) => {
-    const draft = priceDrafts[examId]
-    const parsed = Number(draft)
-
-    if (!Number.isFinite(parsed) || parsed < 0) {
-      toast.error('Price must be a number greater than or equal to zero.')
-      return
-    }
-
-    const { error } = await updateExamPriceService({
-      examId,
-      currentPrice: parsed,
-    })
-
-    if (error) {
-      toast.error(error)
-      return
-    }
-
-    toast.success('Price updated.')
-    await onDataChanged()
-  }
-
-  const saveExamDetails = async (examId: number) => {
+  const saveExam = async (examId: number) => {
     const nextName = (nameDrafts[examId] ?? '').trim()
     const nextDescription = (descriptionDrafts[examId] ?? '').trim() || null
+    const nextCategory = (categoryDrafts[examId] ?? '').trim() || null
+    const nextPrice = Number(priceDrafts[examId] ?? '')
     const nextActive = activeDrafts[examId] ?? false
 
     if (!nextName) {
@@ -81,10 +64,17 @@ export default function AdminExamValuesSection({
       return
     }
 
+    if (!Number.isFinite(nextPrice) || nextPrice < 0) {
+      toast.error('Price must be a number greater than or equal to zero.')
+      return
+    }
+
     const { error } = await updateExamDetailsService({
       examId,
       name: nextName,
       description: nextDescription,
+      category: nextCategory,
+      currentPrice: nextPrice,
       active: nextActive,
     })
 
@@ -97,7 +87,7 @@ export default function AdminExamValuesSection({
       return
     }
 
-    toast.success('Exam details updated.')
+    toast.success('Exam updated.')
     await onDataChanged()
   }
 
@@ -131,6 +121,7 @@ export default function AdminExamValuesSection({
 
     const { error } = await createExam({
       name: newExamName.trim(),
+      category: newExamCategory.trim() || null,
       description: newExamDescription.trim() || null,
       currentPrice: parsedPrice,
     })
@@ -145,6 +136,7 @@ export default function AdminExamValuesSection({
     }
 
     setNewExamName('')
+    setNewExamCategory('')
     setNewExamDescription('')
     setNewExamPrice('')
     toast.success('New exam added. It is now available in the vet order screen.')
@@ -160,6 +152,10 @@ export default function AdminExamValuesSection({
         <label>
           Exam name
           <input required value={newExamName} onChange={(event) => setNewExamName(event.target.value)} />
+        </label>
+        <label>
+          Category
+          <input placeholder="Blood Exams" value={newExamCategory} onChange={(event) => setNewExamCategory(event.target.value)} />
         </label>
         <label>
           Description
@@ -184,6 +180,7 @@ export default function AdminExamValuesSection({
           <thead>
             <tr>
               <th>Exam Name</th>
+              <th>Category</th>
               <th>Description</th>
               <th>Status</th>
               <th>Current Price</th>
@@ -199,6 +196,17 @@ export default function AdminExamValuesSection({
                     value={nameDrafts[exam.id] ?? exam.name}
                     onChange={(event) =>
                       setNameDrafts((previous) => ({
+                        ...previous,
+                        [exam.id]: event.target.value,
+                      }))
+                    }
+                  />
+                </td>
+                <td>
+                  <input
+                    value={categoryDrafts[exam.id] ?? exam.category ?? ''}
+                    onChange={(event) =>
+                      setCategoryDrafts((previous) => ({
                         ...previous,
                         [exam.id]: event.target.value,
                       }))
@@ -239,14 +247,11 @@ export default function AdminExamValuesSection({
                 </td>
                 <td>
                   <div className="row-actions">
-                    <button className="secondary" type="button" onClick={() => void saveExamDetails(exam.id)}>
-                      Save Details
+                    <button className="secondary" type="button" onClick={() => void saveExam(exam.id)}>
+                      Save
                     </button>
                     <button className="secondary" type="button" onClick={() => void toggleExamActive(exam.id)}>
                       {activeDrafts[exam.id] ? 'Disable' : 'Enable'}
-                    </button>
-                    <button className="secondary" type="button" onClick={() => void saveExamPrice(exam.id)}>
-                      Save Price
                     </button>
                   </div>
                 </td>

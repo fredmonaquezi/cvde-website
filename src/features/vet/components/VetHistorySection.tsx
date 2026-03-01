@@ -40,7 +40,7 @@ export default function VetHistorySection({ orders }: VetHistorySectionProps) {
                     </p>
                   </td>
                   <td>{order.owner_name}</td>
-                  <td>{order.selected_exams.map((exam) => `${exam.exam_name} x${exam.quantity}`).join(', ')}</td>
+                  <td>{order.selected_exams.map((exam) => exam.exam_name).join(', ')}</td>
                   <td>{formatCurrency(order.total_value)}</td>
                   <td>
                     <StatusBadge status={order.status} />

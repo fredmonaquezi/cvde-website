@@ -25,7 +25,7 @@ export function isVetRegistrationComplete(profile: Profile): boolean {
   }
 
   if (profile.professional_type === 'clinic') {
-    return hasValue(profile.clinic_name)
+    return hasValue(profile.clinic_name) && hasValue(profile.clinic_address)
   }
 
   return true

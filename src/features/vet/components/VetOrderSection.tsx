@@ -4,7 +4,7 @@ import type { Session } from '@supabase/supabase-js'
 import { useToast } from '../../../components/toast/useToast'
 import { createVetExamOrder } from '../../../services/vetService'
 import type { ExamCatalogItem, Profile, SelectedExam } from '../../../types/app'
-import { formatCurrency } from '../../../utils/format'
+import { formatCurrency, formatPhone, formatSsn, toDigitsOnly } from '../../../utils/format'
 
 type VetOrderSectionProps = {
   examCatalog: ExamCatalogItem[]
@@ -26,51 +26,53 @@ export default function VetOrderSection({ examCatalog, profile, session, onOrder
   const [weightKg, setWeightKg] = useState('')
   const [neuterStatus, setNeuterStatus] = useState<'neutered' | 'not_neutered' | 'unknown' | ''>('')
   const [reactiveStatus, setReactiveStatus] = useState<'reactive' | 'not_reactive' | ''>('')
-  const [selectedQuantities, setSelectedQuantities] = useState<Record<number, number>>({})
+  const [requestCollection, setRequestCollection] = useState(false)
+  const [selectedExamIds, setSelectedExamIds] = useState<Record<number, boolean>>({})
   const toast = useToast()
 
   const selectedExams = useMemo(
     () =>
       examCatalog
-        .filter((exam) => selectedQuantities[exam.id] && selectedQuantities[exam.id] > 0)
+        .filter((exam) => selectedExamIds[exam.id])
         .map((exam) => {
-          const quantity = selectedQuantities[exam.id]
-          const lineTotal = exam.current_price * quantity
           return {
             exam_id: exam.id,
             exam_name: exam.name,
             unit_price: exam.current_price,
-            quantity,
-            line_total: lineTotal,
           } as SelectedExam
         }),
-    [examCatalog, selectedQuantities],
+    [examCatalog, selectedExamIds],
   )
 
-  const totalValue = selectedExams.reduce((sum, item) => sum + item.line_total, 0)
+  const totalValue = selectedExams.reduce((sum, item) => sum + item.unit_price, 0)
+
+  const examsByCategory = useMemo(() => {
+    const grouped = new Map<string, ExamCatalogItem[]>()
+
+    examCatalog.forEach((exam) => {
+      const categoryName = exam.category?.trim() || 'Other Exams'
+      const existing = grouped.get(categoryName)
+
+      if (existing) {
+        existing.push(exam)
+      } else {
+        grouped.set(categoryName, [exam])
+      }
+    })
+
+    return Array.from(grouped.entries())
+  }, [examCatalog])
 
   const handleExamToggle = (examId: number, checked: boolean) => {
-    setSelectedQuantities((previous) => {
+    setSelectedExamIds((previous) => {
       const next = { ...previous }
       if (checked) {
-        next[examId] = next[examId] ?? 1
+        next[examId] = true
       } else {
         delete next[examId]
       }
       return next
     })
-  }
-
-  const handleQuantityChange = (examId: number, quantityText: string) => {
-    const quantity = Number(quantityText)
-    if (!Number.isFinite(quantity) || quantity < 1) {
-      return
-    }
-
-    setSelectedQuantities((previous) => ({
-      ...previous,
-      [examId]: Math.floor(quantity),
-    }))
   }
 
   const resetOrderForm = () => {
@@ -85,14 +87,30 @@ export default function VetOrderSection({ examCatalog, profile, session, onOrder
     setWeightKg('')
     setNeuterStatus('')
     setReactiveStatus('')
-    setSelectedQuantities({})
+    setRequestCollection(false)
+    setSelectedExamIds({})
   }
 
   const handleSubmitOrder = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
-    if (!neuterStatus || !reactiveStatus) {
-      toast.error('Please fill all required animal behavior fields.')
+    if (toDigitsOnly(ownerSsn).length !== 11) {
+      toast.error('Owner Social Security Number must have 11 digits.')
+      return
+    }
+
+    if (toDigitsOnly(ownerPhone).length !== 11) {
+      toast.error('Owner Phone must have 11 digits.')
+      return
+    }
+
+    if (!species.trim()) {
+      toast.error('Species is required.')
+      return
+    }
+
+    if (!ageYears) {
+      toast.error('Age is required.')
       return
     }
 
@@ -107,6 +125,10 @@ export default function VetOrderSection({ examCatalog, profile, session, onOrder
       vetId: profile.id,
       vetNameSnapshot: profile.full_name,
       vetEmailSnapshot: session.user.email ?? null,
+      vetCrmvSnapshot: profile.crmv,
+      vetClinicName: profile.clinic_name,
+      vetClinicAddress: profile.clinic_address,
+      vetProfessionalType: profile.professional_type,
       ownerName: ownerName.trim(),
       ownerSsn: ownerSsn.trim(),
       ownerPhone: ownerPhone.trim(),
@@ -116,8 +138,9 @@ export default function VetOrderSection({ examCatalog, profile, session, onOrder
       breed: breed.trim() || null,
       ageYears: ageYears ? Number(ageYears) : null,
       weightKg: weightKg ? Number(weightKg) : null,
-      neuterStatus,
-      reactiveStatus,
+      neuterStatus: neuterStatus || null,
+      reactiveStatus: reactiveStatus || null,
+      requestCollection,
       selectedExams,
       totalValue,
     })
@@ -150,7 +173,14 @@ export default function VetOrderSection({ examCatalog, profile, session, onOrder
           <span className="field-label">
             Social Security Number <span className="field-required">*</span>
           </span>
-          <input required value={ownerSsn} onChange={(event) => setOwnerSsn(event.target.value)} />
+          <input
+            required
+            inputMode="numeric"
+            maxLength={14}
+            placeholder="000.000.000-00"
+            value={ownerSsn}
+            onChange={(event) => setOwnerSsn(formatSsn(event.target.value))}
+          />
         </label>
       </div>
 
@@ -159,7 +189,14 @@ export default function VetOrderSection({ examCatalog, profile, session, onOrder
           <span className="field-label">
             Phone <span className="field-required">*</span>
           </span>
-          <input required value={ownerPhone} onChange={(event) => setOwnerPhone(event.target.value)} />
+          <input
+            required
+            inputMode="numeric"
+            maxLength={15}
+            placeholder="(00) 00000-0000"
+            value={ownerPhone}
+            onChange={(event) => setOwnerPhone(formatPhone(event.target.value))}
+          />
         </label>
         <label>
           <span className="field-label">
@@ -178,18 +215,18 @@ export default function VetOrderSection({ examCatalog, profile, session, onOrder
         </label>
         <label>
           <span className="field-label">
-            Age <span className="field-optional">(optional)</span>
+            Age <span className="field-required">*</span>
           </span>
-          <input min={0} step={1} type="number" value={ageYears} onChange={(event) => setAgeYears(event.target.value)} />
+          <input required min={0} step={1} type="number" value={ageYears} onChange={(event) => setAgeYears(event.target.value)} />
         </label>
       </div>
 
       <div className="grid three">
         <label>
           <span className="field-label">
-            Species <span className="field-optional">(optional)</span>
+            Species <span className="field-required">*</span>
           </span>
-          <input value={species} onChange={(event) => setSpecies(event.target.value)} />
+          <input required value={species} onChange={(event) => setSpecies(event.target.value)} />
         </label>
         <label>
           <span className="field-label">
@@ -208,9 +245,9 @@ export default function VetOrderSection({ examCatalog, profile, session, onOrder
       <div className="grid two">
         <label>
           <span className="field-label">
-            Neutered Status <span className="field-required">*</span>
+            Neutered Status <span className="field-optional">(optional)</span>
           </span>
-          <select required value={neuterStatus} onChange={(event) => setNeuterStatus(event.target.value as typeof neuterStatus)}>
+          <select value={neuterStatus} onChange={(event) => setNeuterStatus(event.target.value as typeof neuterStatus)}>
             <option value="">Select</option>
             <option value="neutered">Neutered</option>
             <option value="not_neutered">Not Neutered</option>
@@ -219,9 +256,9 @@ export default function VetOrderSection({ examCatalog, profile, session, onOrder
         </label>
         <label>
           <span className="field-label">
-            Reactive Status <span className="field-required">*</span>
+            Reactive Status <span className="field-optional">(optional)</span>
           </span>
-          <select required value={reactiveStatus} onChange={(event) => setReactiveStatus(event.target.value as typeof reactiveStatus)}>
+          <select value={reactiveStatus} onChange={(event) => setReactiveStatus(event.target.value as typeof reactiveStatus)}>
             <option value="">Select</option>
             <option value="reactive">Reactive</option>
             <option value="not_reactive">Not Reactive</option>
@@ -229,52 +266,51 @@ export default function VetOrderSection({ examCatalog, profile, session, onOrder
         </label>
       </div>
 
+      <label className="checkbox-field">
+        <input checked={requestCollection} type="checkbox" onChange={(event) => setRequestCollection(event.target.checked)} />
+        <span className="field-label">Request collection</span>
+      </label>
+      <p className="muted small">Select this if CVDE should send the driver to collect the sample at the vet clinic.</p>
+
       <div className="section">
         <h3>Exam Selection</h3>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Select</th>
-                <th>Exam</th>
-                <th>Price</th>
-                <th>Quantity</th>
-              </tr>
-            </thead>
-            <tbody>
-              {examCatalog.map((exam) => {
-                const isSelected = Boolean(selectedQuantities[exam.id])
-                return (
-                  <tr key={exam.id}>
-                    <td>
-                      <input
-                        checked={isSelected}
-                        type="checkbox"
-                        onChange={(event) => handleExamToggle(exam.id, event.target.checked)}
-                      />
-                    </td>
-                    <td>
-                      <strong>{exam.name}</strong>
-                      <p className="small muted">{exam.description ?? 'No description'}</p>
-                    </td>
-                    <td>{formatCurrency(exam.current_price)}</td>
-                    <td>
-                      <input
-                        className="qty-input"
-                        disabled={!isSelected}
-                        min={1}
-                        step={1}
-                        type="number"
-                        value={selectedQuantities[exam.id] ?? 1}
-                        onChange={(event) => handleQuantityChange(exam.id, event.target.value)}
-                      />
-                    </td>
+        {examsByCategory.map(([categoryName, exams]) => (
+          <details className="exam-category-group" key={categoryName} open>
+            <summary>{`${categoryName} (${exams.length})`}</summary>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Select</th>
+                    <th>Exam</th>
+                    <th>Price</th>
                   </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+                </thead>
+                <tbody>
+                  {exams.map((exam) => {
+                    const isSelected = Boolean(selectedExamIds[exam.id])
+                    return (
+                      <tr key={exam.id}>
+                        <td>
+                          <input
+                            checked={isSelected}
+                            type="checkbox"
+                            onChange={(event) => handleExamToggle(exam.id, event.target.checked)}
+                          />
+                        </td>
+                        <td>
+                          <strong>{exam.name}</strong>
+                          <p className="small muted">{exam.description ?? 'No description'}</p>
+                        </td>
+                        <td>{formatCurrency(exam.current_price)}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </details>
+        ))}
         <p className="total-row">Estimated total: {formatCurrency(totalValue)}</p>
       </div>
 

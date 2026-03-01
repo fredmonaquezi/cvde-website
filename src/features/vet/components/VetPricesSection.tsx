@@ -13,6 +13,7 @@ export default function VetPricesSection({ examCatalog }: VetPricesSectionProps)
         <table>
           <thead>
             <tr>
+              <th>Category</th>
               <th>Exam</th>
               <th>Description</th>
               <th>Current price</th>
@@ -21,6 +22,7 @@ export default function VetPricesSection({ examCatalog }: VetPricesSectionProps)
           <tbody>
             {examCatalog.map((exam) => (
               <tr key={exam.id}>
+                <td>{exam.category ?? '-'}</td>
                 <td>{exam.name}</td>
                 <td>{exam.description ?? '-'}</td>
                 <td>{formatCurrency(exam.current_price)}</td>

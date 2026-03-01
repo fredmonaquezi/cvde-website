@@ -1,6 +1,6 @@
 export type UserRole = 'vet_user' | 'admin_user'
 export type VetTab = 'home' | 'order' | 'history' | 'prices' | 'faq' | 'profile'
-export type AdminTab = 'orders' | 'prices' | 'faq'
+export type AdminTab = 'orders' | 'history' | 'prices' | 'faq'
 export type OrderStatus = 'requested' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
 export type VetProfessionalType = 'clinic' | 'independent'
 
@@ -13,6 +13,7 @@ export type Profile = {
   phone: string | null
   professional_type: VetProfessionalType | null
   clinic_name: string | null
+  clinic_address: string | null
   registration_completed: boolean
 }
 
@@ -20,6 +21,7 @@ export type ExamCatalogItem = {
   id: number
   name: string
   description: string | null
+  category: string | null
   current_price: number
   active: boolean
 }
@@ -28,8 +30,6 @@ export type SelectedExam = {
   exam_id: number
   exam_name: string
   unit_price: number
-  quantity: number
-  line_total: number
 }
 
 export type ExamOrder = {
@@ -37,6 +37,10 @@ export type ExamOrder = {
   vet_id: string
   vet_name_snapshot: string | null
   vet_email_snapshot: string | null
+  vet_crmv_snapshot: string | null
+  vet_clinic_name: string | null
+  vet_clinic_address: string | null
+  vet_professional_type: VetProfessionalType | null
   owner_name: string
   owner_ssn: string
   owner_phone: string | null
@@ -47,8 +51,12 @@ export type ExamOrder = {
   breed: string | null
   age_years: number | null
   weight_kg: number | null
-  neuter_status: 'neutered' | 'not_neutered' | 'unknown'
-  reactive_status: 'reactive' | 'not_reactive'
+  neuter_status: 'neutered' | 'not_neutered' | 'unknown' | null
+  reactive_status: 'reactive' | 'not_reactive' | null
+  request_collection: boolean
+  driver_collection_requested: boolean
+  driver_requested_at: string | null
+  sample_received_at: string | null
   sex: string | null
   clinical_notes: string | null
   selected_exams: SelectedExam[]
@@ -71,4 +79,7 @@ export type OrderEdit = {
   status: OrderStatus
   scheduled_for: string
   admin_notes: string
+  driver_collection_requested: boolean
+  driver_requested_at: string | null
+  sample_received_at: string | null
 }

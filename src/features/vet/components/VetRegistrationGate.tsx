@@ -4,6 +4,7 @@ import type { Session } from '@supabase/supabase-js'
 import { useToast } from '../../../components/toast/useToast'
 import { completeVetRegistration } from '../../../services/authService'
 import type { Profile, VetProfessionalType } from '../../../types/app'
+import { formatPhone, formatSsn, toDigitsOnly } from '../../../utils/format'
 
 type VetRegistrationGateProps = {
   profile: Profile
@@ -14,10 +15,11 @@ type VetRegistrationGateProps = {
 export default function VetRegistrationGate({ profile, session, onProfileUpdated }: VetRegistrationGateProps) {
   const [fullName, setFullName] = useState(profile.full_name ?? '')
   const [crmv, setCrmv] = useState(profile.crmv ?? '')
-  const [ssn, setSsn] = useState(profile.ssn ?? '')
-  const [phone, setPhone] = useState(profile.phone ?? '')
+  const [ssn, setSsn] = useState(formatSsn(profile.ssn ?? ''))
+  const [phone, setPhone] = useState(formatPhone(profile.phone ?? ''))
   const [professionalType, setProfessionalType] = useState<VetProfessionalType | ''>(profile.professional_type ?? '')
   const [clinicName, setClinicName] = useState(profile.clinic_name ?? '')
+  const [clinicAddress, setClinicAddress] = useState(profile.clinic_address ?? '')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const toast = useToast()
 
@@ -29,8 +31,18 @@ export default function VetRegistrationGate({ profile, session, onProfileUpdated
       return
     }
 
-    if (professionalType === 'clinic' && !clinicName.trim()) {
-      toast.error('Please provide the clinic name.')
+    if (toDigitsOnly(ssn).length !== 11) {
+      toast.error('Social Security Number must have 11 digits.')
+      return
+    }
+
+    if (toDigitsOnly(phone).length !== 11) {
+      toast.error('Phone Number must have 11 digits.')
+      return
+    }
+
+    if (professionalType === 'clinic' && (!clinicName.trim() || !clinicAddress.trim())) {
+      toast.error('Please provide the clinic name and clinic address.')
       return
     }
 
@@ -42,6 +54,7 @@ export default function VetRegistrationGate({ profile, session, onProfileUpdated
       phone: phone.trim(),
       professionalType,
       clinicName: professionalType === 'clinic' ? clinicName.trim() : null,
+      clinicAddress: professionalType === 'clinic' ? clinicAddress.trim() : null,
     })
     setIsSubmitting(false)
 
@@ -78,18 +91,32 @@ export default function VetRegistrationGate({ profile, session, onProfileUpdated
 
         <div className="grid two">
           <label>
-            <span className="field-label">
-              Social Security Number <span className="field-required">*</span>
-            </span>
-            <input required value={ssn} onChange={(event) => setSsn(event.target.value)} />
-          </label>
-          <label>
-            <span className="field-label">
-              Phone Number <span className="field-required">*</span>
-            </span>
-            <input required value={phone} onChange={(event) => setPhone(event.target.value)} />
-          </label>
-        </div>
+              <span className="field-label">
+                Social Security Number <span className="field-required">*</span>
+              </span>
+              <input
+                required
+                inputMode="numeric"
+                maxLength={14}
+                placeholder="000.000.000-00"
+                value={ssn}
+                onChange={(event) => setSsn(formatSsn(event.target.value))}
+              />
+            </label>
+            <label>
+              <span className="field-label">
+                Phone Number <span className="field-required">*</span>
+              </span>
+              <input
+                required
+                inputMode="numeric"
+                maxLength={15}
+                placeholder="(00) 00000-0000"
+                value={phone}
+                onChange={(event) => setPhone(formatPhone(event.target.value))}
+              />
+            </label>
+          </div>
 
         <div className="grid two">
           <label>
@@ -105,7 +132,14 @@ export default function VetRegistrationGate({ profile, session, onProfileUpdated
             <select
               required
               value={professionalType}
-              onChange={(event) => setProfessionalType(event.target.value as VetProfessionalType | '')}
+              onChange={(event) => {
+                const nextProfessionalType = event.target.value as VetProfessionalType | ''
+                setProfessionalType(nextProfessionalType)
+                if (nextProfessionalType !== 'clinic') {
+                  setClinicName('')
+                  setClinicAddress('')
+                }
+              }}
             >
               <option value="">Select</option>
               <option value="clinic">Works at a clinic</option>
@@ -115,12 +149,20 @@ export default function VetRegistrationGate({ profile, session, onProfileUpdated
         </div>
 
         {professionalType === 'clinic' ? (
-          <label>
-            <span className="field-label">
-              Clinic Name <span className="field-required">*</span>
-            </span>
-            <input required value={clinicName} onChange={(event) => setClinicName(event.target.value)} />
-          </label>
+          <div className="grid two">
+            <label>
+              <span className="field-label">
+                Clinic Name <span className="field-required">*</span>
+              </span>
+              <input required value={clinicName} onChange={(event) => setClinicName(event.target.value)} />
+            </label>
+            <label>
+              <span className="field-label">
+                Clinic Address <span className="field-required">*</span>
+              </span>
+              <input required value={clinicAddress} onChange={(event) => setClinicAddress(event.target.value)} />
+            </label>
+          </div>
         ) : null}
 
         <button disabled={isSubmitting} type="submit">

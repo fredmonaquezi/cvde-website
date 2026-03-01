@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useToast } from '../components/toast/useToast'
 import AdminExamValuesSection from '../features/admin/components/AdminExamValuesSection'
 import AdminFaqSection from '../features/admin/components/AdminFaqSection'
+import AdminHistorySection from '../features/admin/components/AdminHistorySection'
 import AdminOrdersSection from '../features/admin/components/AdminOrdersSection'
 import { useAdminDashboardData } from '../hooks/useAdminDashboardData'
 import type { AdminTab, Profile } from '../types/app'
@@ -13,7 +14,7 @@ type AdminDashboardProps = {
 
 export default function AdminDashboard({ profile, onSignOut }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState<AdminTab>('orders')
-  const { examCatalog, orders, faqEntries, isLoading, loadError, reload } = useAdminDashboardData()
+  const { examCatalog, orders, faqEntries, driverPhone, isLoading, loadError, reload } = useAdminDashboardData()
   const toast = useToast()
 
   useEffect(() => {
@@ -39,6 +40,9 @@ export default function AdminDashboard({ profile, onSignOut }: AdminDashboardPro
           <button className={activeTab === 'orders' ? 'tab active' : 'tab'} type="button" onClick={() => setActiveTab('orders')}>
             Incoming Orders
           </button>
+          <button className={activeTab === 'history' ? 'tab active' : 'tab'} type="button" onClick={() => setActiveTab('history')}>
+            History
+          </button>
           <button className={activeTab === 'prices' ? 'tab active' : 'tab'} type="button" onClick={() => setActiveTab('prices')}>
             Exam Values
           </button>
@@ -50,8 +54,10 @@ export default function AdminDashboard({ profile, onSignOut }: AdminDashboardPro
         {isLoading ? <p className="muted">Loading data...</p> : null}
 
         {!isLoading && activeTab === 'orders' ? (
-          <AdminOrdersSection onDataChanged={reload} orders={orders} />
+          <AdminOrdersSection driverPhone={driverPhone} onDataChanged={reload} orders={orders} />
         ) : null}
+
+        {!isLoading && activeTab === 'history' ? <AdminHistorySection orders={orders} /> : null}
 
         {!isLoading && activeTab === 'prices' ? (
           <AdminExamValuesSection examCatalog={examCatalog} onDataChanged={reload} />
