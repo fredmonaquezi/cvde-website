@@ -4,6 +4,14 @@ import type { Session } from '@supabase/supabase-js'
 import { useToast } from '../../../components/toast/useToast'
 import { updateUserEmail, updateUserPassword, updateVetProfileDetails } from '../../../services/authService'
 import type { Profile, VetProfessionalType } from '../../../types/app'
+import {
+  BRAZIL_STATE_OPTIONS,
+  buildClinicAddress,
+  createEmptyClinicAddressFields,
+  isClinicAddressComplete,
+  parseClinicAddress,
+  type ClinicAddressFields,
+} from '../../../utils/clinicAddress'
 import { formatPhone, formatSsn, toDigitsOnly } from '../../../utils/format'
 
 type VetProfileSectionProps = {
@@ -20,7 +28,7 @@ type ProfileFormState = {
   email: string
   professionalType: VetProfessionalType | ''
   clinicName: string
-  clinicAddress: string
+  clinicAddress: ClinicAddressFields
 }
 
 function createProfileFormState(profile: Profile, email: string): ProfileFormState {
@@ -32,7 +40,7 @@ function createProfileFormState(profile: Profile, email: string): ProfileFormSta
     email,
     professionalType: profile.professional_type ?? '',
     clinicName: profile.clinic_name ?? '',
-    clinicAddress: profile.clinic_address ?? '',
+    clinicAddress: parseClinicAddress(profile.clinic_address),
   }
 }
 
@@ -58,7 +66,7 @@ export default function VetProfileSection({ profile, session, onProfileUpdated }
     const trimmedPhone = profileForm.phone.trim()
     const trimmedEmail = profileForm.email.trim()
     const trimmedClinicName = profileForm.clinicName.trim()
-    const trimmedClinicAddress = profileForm.clinicAddress.trim()
+    const nextClinicAddress = buildClinicAddress(profileForm.clinicAddress)
 
     if (
       !trimmedFullName ||
@@ -82,8 +90,8 @@ export default function VetProfileSection({ profile, session, onProfileUpdated }
       return
     }
 
-    if (profileForm.professionalType === 'clinic' && (!trimmedClinicName || !trimmedClinicAddress)) {
-      toast.error('Please provide the clinic name and clinic address.')
+    if (profileForm.professionalType === 'clinic' && (!trimmedClinicName || !isClinicAddressComplete(profileForm.clinicAddress))) {
+      toast.error('Please provide the full clinic address, including street, number, neighborhood, city, and state.')
       return
     }
 
@@ -95,7 +103,7 @@ export default function VetProfileSection({ profile, session, onProfileUpdated }
       phone: trimmedPhone,
       professionalType: profileForm.professionalType,
       clinicName: profileForm.professionalType === 'clinic' ? trimmedClinicName : null,
-      clinicAddress: profileForm.professionalType === 'clinic' ? trimmedClinicAddress : null,
+      clinicAddress: profileForm.professionalType === 'clinic' ? nextClinicAddress : null,
     })
 
     if (error || !data) {
@@ -124,6 +132,16 @@ export default function VetProfileSection({ profile, session, onProfileUpdated }
     setIsSavingProfile(false)
     onProfileUpdated(data)
     toast.success('Profile updated successfully.')
+  }
+
+  const updateClinicAddressField = (field: keyof ClinicAddressFields, value: string) => {
+    setProfileForm((current) => ({
+      ...current,
+      clinicAddress: {
+        ...current.clinicAddress,
+        [field]: value,
+      },
+    }))
   }
 
   const handleChangePassword = async (event: FormEvent<HTMLFormElement>) => {
@@ -241,7 +259,8 @@ export default function VetProfileSection({ profile, session, onProfileUpdated }
                     ...current,
                     professionalType: nextProfessionalType,
                     clinicName: nextProfessionalType === 'clinic' ? current.clinicName : '',
-                    clinicAddress: nextProfessionalType === 'clinic' ? current.clinicAddress : '',
+                    clinicAddress:
+                      nextProfessionalType === 'clinic' ? current.clinicAddress : createEmptyClinicAddressFields(),
                   }))
                 }}
               >
@@ -253,7 +272,7 @@ export default function VetProfileSection({ profile, session, onProfileUpdated }
           </div>
 
           {profileForm.professionalType === 'clinic' ? (
-            <div className="grid two">
+            <>
               <label>
                 <span className="field-label">
                   Clinic Name <span className="field-required">*</span>
@@ -264,19 +283,79 @@ export default function VetProfileSection({ profile, session, onProfileUpdated }
                   onChange={(event) => setProfileForm((current) => ({ ...current, clinicName: event.target.value }))}
                 />
               </label>
-              <label>
-                <span className="field-label">
-                  Clinic Address <span className="field-required">*</span>
-                </span>
-                <input
-                  required
-                  value={profileForm.clinicAddress}
-                  onChange={(event) =>
-                    setProfileForm((current) => ({ ...current, clinicAddress: event.target.value }))
-                  }
-                />
-              </label>
-            </div>
+
+              <section className="form-subsection">
+                <div className="form-subsection-header">
+                  <div>
+                    <h3>Clinic Address</h3>
+                    <p className="muted small">Keep the clinic location structured so collection and scheduling details stay clear.</p>
+                  </div>
+                </div>
+
+                <div className="grid address-grid-line-one">
+                  <label>
+                    <span className="field-label">
+                      Street Name <span className="field-required">*</span>
+                    </span>
+                    <input
+                      required
+                      value={profileForm.clinicAddress.street}
+                      onChange={(event) => updateClinicAddressField('street', event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    <span className="field-label">
+                      Number <span className="field-required">*</span>
+                    </span>
+                    <input
+                      required
+                      value={profileForm.clinicAddress.number}
+                      onChange={(event) => updateClinicAddressField('number', event.target.value)}
+                    />
+                  </label>
+                </div>
+
+                <div className="grid address-grid-line-two">
+                  <label>
+                    <span className="field-label">
+                      Neighborhood <span className="field-required">*</span>
+                    </span>
+                    <input
+                      required
+                      value={profileForm.clinicAddress.neighborhood}
+                      onChange={(event) => updateClinicAddressField('neighborhood', event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    <span className="field-label">
+                      City <span className="field-required">*</span>
+                    </span>
+                    <input
+                      required
+                      value={profileForm.clinicAddress.city}
+                      onChange={(event) => updateClinicAddressField('city', event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    <span className="field-label">
+                      State <span className="field-required">*</span>
+                    </span>
+                    <select
+                      required
+                      value={profileForm.clinicAddress.state}
+                      onChange={(event) => updateClinicAddressField('state', event.target.value)}
+                    >
+                      <option value="">Select a state</option>
+                      {BRAZIL_STATE_OPTIONS.map((stateOption) => (
+                        <option key={stateOption.value} value={stateOption.value}>
+                          {stateOption.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              </section>
+            </>
           ) : null}
 
           <button disabled={isSavingProfile} type="submit">

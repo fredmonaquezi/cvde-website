@@ -4,41 +4,59 @@ type VetHomeSectionProps = {
   onNavigate: (tab: VetTab) => void
 }
 
+const HOME_ACTIONS: Array<{
+  id: VetTab
+  label: string
+  description: string
+  cta: string
+  tone: string
+}> = [
+  {
+    id: 'order',
+    label: 'Order a Vet Exam',
+    description: 'Create a new exam request with owner, patient, and selected exam details.',
+    cta: 'Open Order Form',
+    tone: 'Fast intake',
+  },
+  {
+    id: 'history',
+    label: 'My Exam History',
+    description: 'Review previous requests, values, and scheduling status updates.',
+    cta: 'View History',
+    tone: 'Past requests',
+  },
+  {
+    id: 'prices',
+    label: 'Updated Value Table',
+    description: 'See the current official prices published by CVDE administration.',
+    cta: 'Open Value Table',
+    tone: 'Latest pricing',
+  },
+  {
+    id: 'faq',
+    label: 'Technical Questions',
+    description: 'Access FAQ guidance for exams, values, and platform operations.',
+    cta: 'Open FAQ',
+    tone: 'Quick answers',
+  },
+]
+
 export default function VetHomeSection({ onNavigate }: VetHomeSectionProps) {
   return (
     <section className="section">
       <div className="landing-grid">
-        <article className="landing-card">
-          <h3>Order a Vet Exam</h3>
-          <p>Create a new exam request with owner, patient, and selected exam details.</p>
-          <button className="secondary" type="button" onClick={() => onNavigate('order')}>
-            Open Order Form
-          </button>
-        </article>
-
-        <article className="landing-card">
-          <h3>My Exam History</h3>
-          <p>Review your previous requests, values, and scheduling status updates.</p>
-          <button className="secondary" type="button" onClick={() => onNavigate('history')}>
-            View History
-          </button>
-        </article>
-
-        <article className="landing-card">
-          <h3>Updated Value Table</h3>
-          <p>See current official prices published by CVDE administration.</p>
-          <button className="secondary" type="button" onClick={() => onNavigate('prices')}>
-            Open Value Table
-          </button>
-        </article>
-
-        <article className="landing-card">
-          <h3>Technical Questions</h3>
-          <p>Access FAQ guidance on exams, values, and platform operations.</p>
-          <button className="secondary" type="button" onClick={() => onNavigate('faq')}>
-            Open FAQ
-          </button>
-        </article>
+        {HOME_ACTIONS.map((action) => (
+          <article className="landing-card" key={action.id}>
+            <span className="landing-chip">{action.tone}</span>
+            <div className="landing-card-copy">
+              <h3>{action.label}</h3>
+              <p>{action.description}</p>
+            </div>
+            <button className="secondary" type="button" onClick={() => onNavigate(action.id)}>
+              {action.cta}
+            </button>
+          </article>
+        ))}
       </div>
     </section>
   )

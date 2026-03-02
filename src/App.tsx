@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
+import BrandLockup from './components/BrandLockup'
 import { useAuthSession } from './hooks/useAuthSession'
 import AuthPage from './pages/AuthPage'
 import VetDashboard from './pages/VetDashboard'
@@ -11,8 +12,10 @@ function App() {
   if (isLoading) {
     return (
       <main className="page">
-        <section className="card">
-          <h1>Loading...</h1>
+        <section className="card centered-panel loading-card">
+          <BrandLockup eyebrow="Preparing your workspace" subtitle="Secure access to exams, pricing, and operations." />
+          <div aria-hidden="true" className="loading-indicator" />
+          <p className="muted">Loading your dashboard.</p>
         </section>
       </main>
     )

@@ -17,6 +17,11 @@ type CollectionTrackingState = {
   isOverdue: boolean
 }
 
+type CompactCollectionSummary = {
+  label: string
+  toneClassName: string
+}
+
 function getCollectionDeadlineMs(driverRequestedAt: string | null): number | null {
   if (!driverRequestedAt) {
     return null
@@ -101,6 +106,46 @@ function getCollectionTrackingState(
   }
 }
 
+function getCompactCollectionSummary(
+  requestCollection: boolean,
+  driverCollectionRequested: boolean,
+  sampleReceivedAt: string | null,
+  isOverdue: boolean,
+): CompactCollectionSummary {
+  if (!requestCollection) {
+    return {
+      label: 'No collection',
+      toneClassName: 'is-neutral',
+    }
+  }
+
+  if (sampleReceivedAt) {
+    return {
+      label: 'Sample received',
+      toneClassName: 'is-success',
+    }
+  }
+
+  if (isOverdue) {
+    return {
+      label: 'Collection overdue',
+      toneClassName: 'is-danger',
+    }
+  }
+
+  if (driverCollectionRequested) {
+    return {
+      label: 'Driver contacted',
+      toneClassName: 'is-info',
+    }
+  }
+
+  return {
+    label: 'Awaiting driver',
+    toneClassName: 'is-warning',
+  }
+}
+
 function buildDriverWhatsAppMessage(order: ExamOrder): string {
   const examList = order.selected_exams.map((exam) => exam.exam_name).join(', ')
   const clinicName =
@@ -159,6 +204,8 @@ function buildDriverReminderWhatsAppUrl(driverPhone: string, order: ExamOrder): 
 export default function AdminOrdersSection({ driverPhone, orders, onDataChanged }: AdminOrdersSectionProps) {
   const [orderEdits, setOrderEdits] = useState<Record<number, OrderEdit>>({})
   const [driverPhoneInput, setDriverPhoneInput] = useState(formatInternationalPhone(driverPhone ?? ''))
+  const [isDriverSettingsOpen, setIsDriverSettingsOpen] = useState(false)
+  const [expandedOrders, setExpandedOrders] = useState<Record<number, boolean>>({})
   const [isSavingDriverPhone, setIsSavingDriverPhone] = useState(false)
   const [collectionSavingByOrder, setCollectionSavingByOrder] = useState<Record<number, boolean>>({})
   const [nowMs, setNowMs] = useState(() => Date.now())
@@ -233,6 +280,14 @@ export default function AdminOrdersSection({ driverPhone, orders, onDataChanged 
 
   const hasValidDriverPhone = toDigitsOnly(driverPhoneInput).length === 13
   const normalizedDriverPhone = useMemo(() => driverPhoneInput.trim(), [driverPhoneInput])
+  const activeOrders = useMemo(() => orders.filter((order) => order.status !== 'completed'), [orders])
+
+  const toggleOrderExpanded = (orderId: number) => {
+    setExpandedOrders((previous) => ({
+      ...previous,
+      [orderId]: !(previous[orderId] ?? false),
+    }))
+  }
 
   const persistOrderUpdate = async (
     order: ExamOrder,
@@ -321,32 +376,54 @@ export default function AdminOrdersSection({ driverPhone, orders, onDataChanged 
   return (
     <section className="section">
       <h2>All Exam Orders</h2>
-      <section className="driver-settings-card">
-        <h3>Driver Settings</h3>
-        <p className="muted small">Save the driver WhatsApp number once. This will be used for all collection requests.</p>
-        <div className="driver-settings-row">
-          <label>
-            Driver Phone Number
-            <input
-              inputMode="numeric"
-              maxLength={19}
-              placeholder="+55 (11) 99999-9999"
-              value={driverPhoneInput}
-              onChange={(event) => setDriverPhoneInput(formatInternationalPhone(event.target.value))}
-            />
-          </label>
-          <button type="button" onClick={() => void saveDriverPhone()} disabled={isSavingDriverPhone}>
-            {isSavingDriverPhone ? 'Saving...' : 'Save Driver Phone'}
-          </button>
-        </div>
-      </section>
+      <div className="driver-settings-wrap">
+        <button
+          aria-expanded={isDriverSettingsOpen}
+          className={isDriverSettingsOpen ? 'secondary driver-settings-toggle active' : 'secondary driver-settings-toggle'}
+          type="button"
+          onClick={() => setIsDriverSettingsOpen((current) => !current)}
+        >
+          <span className="driver-settings-toggle-copy">
+            <span className="driver-settings-toggle-title">Driver Settings</span>
+            <span className="driver-settings-toggle-subtitle">
+              {driverPhone ? `Current driver: ${formatInternationalPhone(driverPhone)}` : 'No driver phone saved yet'}
+            </span>
+          </span>
+          <span aria-hidden="true" className="driver-settings-toggle-caret">
+            {isDriverSettingsOpen ? '˄' : '˅'}
+          </span>
+        </button>
 
-      {orders.length === 0 ? <p>No orders yet.</p> : null}
+        {isDriverSettingsOpen ? (
+          <section className="driver-settings-card driver-settings-panel">
+            <h3>Driver Settings</h3>
+            <p className="muted small">Save the driver WhatsApp number once. This will be used for all collection requests.</p>
+            <div className="driver-settings-row">
+              <label>
+                Driver Phone Number
+                <input
+                  inputMode="numeric"
+                  maxLength={19}
+                  placeholder="+55 (11) 99999-9999"
+                  value={driverPhoneInput}
+                  onChange={(event) => setDriverPhoneInput(formatInternationalPhone(event.target.value))}
+                />
+              </label>
+              <button type="button" onClick={() => void saveDriverPhone()} disabled={isSavingDriverPhone}>
+                {isSavingDriverPhone ? 'Saving...' : 'Save Driver Phone'}
+              </button>
+            </div>
+          </section>
+        ) : null}
+      </div>
+
+      {activeOrders.length === 0 ? <p>No active orders right now. Completed orders are available in History.</p> : null}
 
       <div className="order-list">
-        {orders.map((order) => {
+        {activeOrders.map((order) => {
           const edit = orderEdits[order.id]
           const isSavingCollection = collectionSavingByOrder[order.id] ?? false
+          const isExpanded = expandedOrders[order.id] ?? false
           const neuterLabel = order.neuter_status ? order.neuter_status.replace('_', ' ') : 'not provided'
           const reactiveLabel = order.reactive_status ? order.reactive_status.replace('_', ' ') : 'not provided'
           const isDriverCollectionRequested = edit?.driver_collection_requested ?? order.driver_collection_requested
@@ -359,187 +436,221 @@ export default function AdminOrdersSection({ driverPhone, orders, onDataChanged 
             sampleReceivedAt,
             nowMs,
           )
+          const compactCollectionSummary = getCompactCollectionSummary(
+            order.request_collection,
+            isDriverCollectionRequested,
+            sampleReceivedAt,
+            collectionState.isOverdue,
+          )
 
           return (
             <article className="order-card" key={order.id}>
-              <div className="order-card-head">
-                <h3>Order #{order.id}</h3>
-                <StatusBadge status={order.status} />
-              </div>
-
-              <div className={collectionState.bannerClassName}>
-                <strong>{collectionState.bannerText}</strong>
-              </div>
-
-              <p className="small muted">
-                Created: {formatDateTime(order.created_at)} | Vet: {order.vet_name_snapshot ?? 'Unknown'} ({order.vet_email_snapshot ?? '-'})
-              </p>
-
-              <p>
-                <strong>CRMV:</strong> {order.vet_crmv_snapshot ?? '-'}
-              </p>
-
-              <p>
-                <strong>Clinic:</strong>{' '}
-                {order.vet_clinic_name ??
-                  (order.vet_professional_type === 'independent' ? 'Independent Professional' : 'Clinic not informed')}
-              </p>
-
-              <p>
-                <strong>Clinic address:</strong> {order.vet_clinic_address ?? '-'}
-              </p>
-
-              <p>
-                <strong>Patient:</strong> {order.patient_name}
-                {order.species ? ` (${order.species})` : ''}
-                {order.breed ? `, ${order.breed}` : ''}
-                {order.age_years !== null ? `, ${order.age_years}y` : ''}
-                {order.weight_kg !== null ? `, ${order.weight_kg}kg` : ''}
-              </p>
-
-              <p>
-                <strong>Neutered:</strong> {neuterLabel} | <strong>Reactive:</strong> {reactiveLabel}
-              </p>
-
-              <p>
-                <strong>Owner:</strong> {order.owner_name} | <strong>SSN:</strong> {order.owner_ssn ?? '-'} | <strong>Phone:</strong>{' '}
-                {order.owner_phone ?? '-'}
-              </p>
-
-              <p>
-                <strong>Address:</strong> {order.owner_address ?? '-'}
-              </p>
-
-              <p>
-                <strong>Request collection:</strong> {order.request_collection ? 'Yes' : 'No'}
-              </p>
-
-              {driverRequestedAt ? (
-                <p>
-                  <strong>Driver requested at:</strong> {formatDateTime(driverRequestedAt)}
-                </p>
-              ) : null}
-
-              {sampleReceivedAt ? (
-                <p>
-                  <strong>Sample received at clinic:</strong> {formatDateTime(sampleReceivedAt)}
-                </p>
-              ) : null}
-
-              {order.request_collection ? (
-                <>
-                  <label className="checkbox-field admin-collection-check">
-                    <input
-                      checked={isDriverCollectionRequested}
-                      disabled={isSavingCollection}
-                      type="checkbox"
-                      onChange={(event) => void handleDriverCollectionToggle(order, event.target.checked)}
-                    />
-                    <span className="field-label">
-                      {isSavingCollection ? 'Saving collection status...' : 'Requested the driver to collect'}
+              <button
+                aria-expanded={isExpanded}
+                className={isExpanded ? 'order-card-toggle active' : 'order-card-toggle'}
+                type="button"
+                onClick={() => toggleOrderExpanded(order.id)}
+              >
+                <span className="order-card-toggle-copy">
+                  <span className="order-card-head">
+                    <span className="order-card-title">Order #{order.id}</span>
+                    <StatusBadge status={order.status} />
+                  </span>
+                  <span className="order-card-summary">
+                    {order.patient_name} | {order.owner_name} | {formatDateTime(order.created_at)}
+                  </span>
+                  <span className="order-card-meta">
+                    <span className={`order-summary-chip ${compactCollectionSummary.toneClassName}`}>
+                      {compactCollectionSummary.label}
                     </span>
-                  </label>
+                    <span className="order-summary-chip is-neutral">
+                      {order.selected_exams.length} {order.selected_exams.length === 1 ? 'exam' : 'exams'}
+                    </span>
+                    <span className="order-summary-chip is-neutral">{formatCurrency(order.total_value)}</span>
+                  </span>
+                </span>
+                <span aria-hidden="true" className="order-card-caret">
+                  {isExpanded ? '˄' : '˅'}
+                </span>
+              </button>
 
-                  <div className="row-actions">
-                  {hasValidDriverPhone ? (
-                    <a
-                      className="button-link"
-                      href={buildDriverWhatsAppUrl(normalizedDriverPhone, order)}
-                      rel="noreferrer"
-                      target="_blank"
-                    >
-                      Open WhatsApp for Driver
-                    </a>
-                  ) : (
-                      <button className="secondary" disabled type="button">
-                        Save driver phone to enable WhatsApp
-                      </button>
-                    )}
-
-                    {isDriverCollectionRequested && !sampleReceivedAt ? (
-                      <button
-                        className="secondary"
-                        disabled={isSavingCollection}
-                        type="button"
-                        onClick={() => void handleMarkSampleReceived(order)}
-                      >
-                        {isSavingCollection ? 'Saving...' : 'Mark Sample Received at Clinic'}
-                      </button>
-                    ) : null}
-
-                    {collectionState.isOverdue && hasValidDriverPhone ? (
-                      <a
-                        className="button-link warning"
-                        href={buildDriverReminderWhatsAppUrl(normalizedDriverPhone, order)}
-                        rel="noreferrer"
-                        target="_blank"
-                      >
-                        Open WhatsApp Reminder
-                      </a>
-                    ) : null}
+              {isExpanded ? (
+                <>
+                  <div className={collectionState.bannerClassName}>
+                    <strong>{collectionState.bannerText}</strong>
                   </div>
+
+                  <p className="small muted">
+                    Created: {formatDateTime(order.created_at)} | Vet: {order.vet_name_snapshot ?? 'Unknown'} ({order.vet_email_snapshot ?? '-'})
+                  </p>
+
+                  <p>
+                    <strong>CRMV:</strong> {order.vet_crmv_snapshot ?? '-'}
+                  </p>
+
+                  <p>
+                    <strong>Clinic:</strong>{' '}
+                    {order.vet_clinic_name ??
+                      (order.vet_professional_type === 'independent' ? 'Independent Professional' : 'Clinic not informed')}
+                  </p>
+
+                  <p>
+                    <strong>Clinic address:</strong> {order.vet_clinic_address ?? '-'}
+                  </p>
+
+                  <p>
+                    <strong>Patient:</strong> {order.patient_name}
+                    {order.species ? ` (${order.species})` : ''}
+                    {order.breed ? `, ${order.breed}` : ''}
+                    {order.age_years !== null ? `, ${order.age_years}y` : ''}
+                    {order.weight_kg !== null ? `, ${order.weight_kg}kg` : ''}
+                  </p>
+
+                  <p>
+                    <strong>Neutered:</strong> {neuterLabel} | <strong>Reactive:</strong> {reactiveLabel}
+                  </p>
+
+                  <p>
+                    <strong>Owner:</strong> {order.owner_name} | <strong>SSN:</strong> {order.owner_ssn ?? '-'} | <strong>Phone:</strong>{' '}
+                    {order.owner_phone ?? '-'}
+                  </p>
+
+                  <p>
+                    <strong>Address:</strong> {order.owner_address ?? '-'}
+                  </p>
+
+                  <p>
+                    <strong>Request collection:</strong> {order.request_collection ? 'Yes' : 'No'}
+                  </p>
+
+                  {driverRequestedAt ? (
+                    <p>
+                      <strong>Driver requested at:</strong> {formatDateTime(driverRequestedAt)}
+                    </p>
+                  ) : null}
+
+                  {sampleReceivedAt ? (
+                    <p>
+                      <strong>Sample received at clinic:</strong> {formatDateTime(sampleReceivedAt)}
+                    </p>
+                  ) : null}
+
+                  {order.request_collection ? (
+                    <>
+                      <label className="checkbox-field admin-collection-check">
+                        <input
+                          checked={isDriverCollectionRequested}
+                          disabled={isSavingCollection}
+                          type="checkbox"
+                          onChange={(event) => void handleDriverCollectionToggle(order, event.target.checked)}
+                        />
+                        <span className="field-label">
+                          {isSavingCollection ? 'Saving collection status...' : 'Requested the driver to collect'}
+                        </span>
+                      </label>
+
+                      <div className="row-actions">
+                        {hasValidDriverPhone ? (
+                          <a
+                            className="button-link"
+                            href={buildDriverWhatsAppUrl(normalizedDriverPhone, order)}
+                            rel="noreferrer"
+                            target="_blank"
+                          >
+                            Open WhatsApp for Driver
+                          </a>
+                        ) : (
+                          <button className="secondary" disabled type="button">
+                            Save driver phone to enable WhatsApp
+                          </button>
+                        )}
+
+                        {isDriverCollectionRequested && !sampleReceivedAt ? (
+                          <button
+                            className="secondary"
+                            disabled={isSavingCollection}
+                            type="button"
+                            onClick={() => void handleMarkSampleReceived(order)}
+                          >
+                            {isSavingCollection ? 'Saving...' : 'Mark Sample Received at Clinic'}
+                          </button>
+                        ) : null}
+
+                        {collectionState.isOverdue && hasValidDriverPhone ? (
+                          <a
+                            className="button-link warning"
+                            href={buildDriverReminderWhatsAppUrl(normalizedDriverPhone, order)}
+                            rel="noreferrer"
+                            target="_blank"
+                          >
+                            Open WhatsApp Reminder
+                          </a>
+                        ) : null}
+                      </div>
+                    </>
+                  ) : null}
+
+                  <p>
+                    <strong>Exams:</strong> {order.selected_exams.map((exam) => exam.exam_name).join(', ')}
+                  </p>
+
+                  <p>
+                    <strong>Total:</strong> {formatCurrency(order.total_value)}
+                  </p>
+
+                  <div className="grid two">
+                    <label>
+                      Status
+                      <select
+                        value={edit?.status ?? order.status}
+                        onChange={(event) =>
+                          setOrderEdits((previous) => ({
+                            ...previous,
+                            [order.id]: {
+                              status: event.target.value as OrderStatus,
+                              scheduled_for: edit?.scheduled_for ?? toDateTimeLocalValue(order.scheduled_for),
+                              admin_notes: edit?.admin_notes ?? order.admin_notes ?? '',
+                              driver_collection_requested: edit?.driver_collection_requested ?? order.driver_collection_requested,
+                              driver_requested_at: edit?.driver_requested_at ?? order.driver_requested_at,
+                              sample_received_at: edit?.sample_received_at ?? order.sample_received_at,
+                            },
+                          }))
+                        }
+                      >
+                        <option value="requested">requested</option>
+                        <option value="scheduled">scheduled</option>
+                        <option value="in_progress">in progress</option>
+                        <option value="completed">completed</option>
+                        <option value="cancelled">cancelled</option>
+                      </select>
+                    </label>
+
+                    <label>
+                      Admin notes
+                      <input
+                        value={edit?.admin_notes ?? order.admin_notes ?? ''}
+                        onChange={(event) =>
+                          setOrderEdits((previous) => ({
+                            ...previous,
+                            [order.id]: {
+                              status: edit?.status ?? order.status,
+                              scheduled_for: edit?.scheduled_for ?? toDateTimeLocalValue(order.scheduled_for),
+                              admin_notes: event.target.value,
+                              driver_collection_requested: edit?.driver_collection_requested ?? order.driver_collection_requested,
+                              driver_requested_at: edit?.driver_requested_at ?? order.driver_requested_at,
+                              sample_received_at: edit?.sample_received_at ?? order.sample_received_at,
+                            },
+                          }))
+                        }
+                      />
+                    </label>
+                  </div>
+
+                  <button className="secondary" type="button" onClick={() => void saveOrder(order.id)}>
+                    Save Order Update
+                  </button>
                 </>
               ) : null}
-
-              <p>
-                <strong>Exams:</strong> {order.selected_exams.map((exam) => exam.exam_name).join(', ')}
-              </p>
-
-              <p>
-                <strong>Total:</strong> {formatCurrency(order.total_value)}
-              </p>
-
-              <div className="grid two">
-                <label>
-                  Status
-                  <select
-                    value={edit?.status ?? order.status}
-                    onChange={(event) =>
-                      setOrderEdits((previous) => ({
-                        ...previous,
-                        [order.id]: {
-                          status: event.target.value as OrderStatus,
-                          scheduled_for: edit?.scheduled_for ?? toDateTimeLocalValue(order.scheduled_for),
-                          admin_notes: edit?.admin_notes ?? order.admin_notes ?? '',
-                          driver_collection_requested: edit?.driver_collection_requested ?? order.driver_collection_requested,
-                          driver_requested_at: edit?.driver_requested_at ?? order.driver_requested_at,
-                          sample_received_at: edit?.sample_received_at ?? order.sample_received_at,
-                        },
-                      }))
-                    }
-                  >
-                    <option value="requested">requested</option>
-                    <option value="scheduled">scheduled</option>
-                    <option value="in_progress">in progress</option>
-                    <option value="completed">completed</option>
-                    <option value="cancelled">cancelled</option>
-                  </select>
-                </label>
-
-                <label>
-                  Admin notes
-                  <input
-                    value={edit?.admin_notes ?? order.admin_notes ?? ''}
-                    onChange={(event) =>
-                      setOrderEdits((previous) => ({
-                        ...previous,
-                        [order.id]: {
-                          status: edit?.status ?? order.status,
-                          scheduled_for: edit?.scheduled_for ?? toDateTimeLocalValue(order.scheduled_for),
-                          admin_notes: event.target.value,
-                          driver_collection_requested: edit?.driver_collection_requested ?? order.driver_collection_requested,
-                          driver_requested_at: edit?.driver_requested_at ?? order.driver_requested_at,
-                          sample_received_at: edit?.sample_received_at ?? order.sample_received_at,
-                        },
-                      }))
-                    }
-                  />
-                </label>
-              </div>
-
-              <button className="secondary" type="button" onClick={() => void saveOrder(order.id)}>
-                Save Order Update
-              </button>
             </article>
           )
         })}

@@ -206,6 +206,8 @@ export default function VetOrderSection({ examCatalog, profile, session, onOrder
         </label>
       </div>
 
+      <div className="form-section-divider" aria-hidden="true" />
+
       <div className="grid two">
         <label>
           <span className="field-label">
@@ -266,12 +268,6 @@ export default function VetOrderSection({ examCatalog, profile, session, onOrder
         </label>
       </div>
 
-      <label className="checkbox-field">
-        <input checked={requestCollection} type="checkbox" onChange={(event) => setRequestCollection(event.target.checked)} />
-        <span className="field-label">Request collection</span>
-      </label>
-      <p className="muted small">Select this if CVDE should send the driver to collect the sample at the vet clinic.</p>
-
       <div className="section">
         <h3>Exam Selection</h3>
         {examsByCategory.map(([categoryName, exams]) => (
@@ -313,6 +309,18 @@ export default function VetOrderSection({ examCatalog, profile, session, onOrder
         ))}
         <p className="total-row">Estimated total: {formatCurrency(totalValue)}</p>
       </div>
+
+      <div className="form-section-divider" aria-hidden="true" />
+
+      <section className="request-collection-callout">
+        <label className="checkbox-field request-collection-toggle">
+          <input checked={requestCollection} type="checkbox" onChange={(event) => setRequestCollection(event.target.checked)} />
+          <span className="field-label">Request collection</span>
+        </label>
+        <p className="muted">
+          Select this if CVDE should send the driver to collect the sample at the vet clinic.
+        </p>
+      </section>
 
       <button disabled={isSubmitting} type="submit">
         {isSubmitting ? 'Sending order...' : 'Send Exam Order'}

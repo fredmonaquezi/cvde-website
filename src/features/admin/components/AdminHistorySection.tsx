@@ -227,8 +227,7 @@ export default function AdminHistorySection({ orders }: AdminHistorySectionProps
         <div>
           <h2>Exam History</h2>
           <p className="muted small">
-            Starts on {RANGE_LABELS[range].toLowerCase()}. Use the filters to inspect popularity by period, vet, clinic, or exam
-            type.
+            Review exam activity by period, veterinarian, clinic, and exam type, then export the filtered results.
           </p>
         </div>
         <button type="button" onClick={handleExportCsv} disabled={exportRows.length === 0}>
@@ -236,71 +235,85 @@ export default function AdminHistorySection({ orders }: AdminHistorySectionProps
         </button>
       </div>
 
-      <div className="history-filters">
-        <label>
-          Time range
-          <select value={range} onChange={(event) => setRange(event.target.value as HistoryRange)}>
-            <option value="3d">Last 3 days</option>
-            <option value="7d">Last 7 days</option>
-            <option value="30d">Last 30 days</option>
-            <option value="90d">Last 90 days</option>
-            <option value="365d">Last 12 months</option>
-            <option value="all">All time</option>
-          </select>
-        </label>
+      <section className="history-filter-panel">
+        <div className="history-filter-heading">
+          <div>
+            <p className="eyebrow">Filters</p>
+            <h3>Refine the report</h3>
+          </div>
+          <p className="muted small">
+            Showing results for <strong>{RANGE_LABELS[range]}</strong>.
+          </p>
+        </div>
 
-        <label>
-          Vet
-          <select value={vetFilter} onChange={(event) => setVetFilter(event.target.value)}>
-            <option value="all">All vets</option>
-            {vetOptions.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="history-filters">
+          <label>
+            Time range
+            <select value={range} onChange={(event) => setRange(event.target.value as HistoryRange)}>
+              <option value="3d">Last 3 days</option>
+              <option value="7d">Last 7 days</option>
+              <option value="30d">Last 30 days</option>
+              <option value="90d">Last 90 days</option>
+              <option value="365d">Last 12 months</option>
+              <option value="all">All time</option>
+            </select>
+          </label>
 
-        <label>
-          Clinic
-          <select value={clinicFilter} onChange={(event) => setClinicFilter(event.target.value)}>
-            <option value="all">All clinics</option>
-            {clinicOptions.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </label>
+          <label>
+            Vet
+            <select value={vetFilter} onChange={(event) => setVetFilter(event.target.value)}>
+              <option value="all">All vets</option>
+              {vetOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
 
-        <label>
-          Exam type
-          <select value={examFilter} onChange={(event) => setExamFilter(event.target.value)}>
-            <option value="all">All exams</option>
-            {examOptions.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
+          <label>
+            Clinic
+            <select value={clinicFilter} onChange={(event) => setClinicFilter(event.target.value)}>
+              <option value="all">All clinics</option>
+              {clinicOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            Exam type
+            <select value={examFilter} onChange={(event) => setExamFilter(event.target.value)}>
+              <option value="all">All exams</option>
+              {examOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </section>
 
       <div className="history-summary-grid">
-        <article className="summary-card">
-          <h3>{filteredRows.length}</h3>
-          <p>Exam items in filtered range</p>
+        <article className="summary-card history-metric-card">
+          <p className="history-metric-label">Exam items</p>
+          <h3 className="history-metric-value">{filteredRows.length}</h3>
+          <p className="muted small">Entries matching the current filters</p>
         </article>
-        <article className="summary-card">
-          <h3>{formatCurrency(totalValue)}</h3>
-          <p>Total filtered value</p>
+        <article className="summary-card history-metric-card">
+          <p className="history-metric-label">Filtered value</p>
+          <h3 className="history-metric-value">{formatCurrency(totalValue)}</h3>
+          <p className="muted small">Total value for visible exam items</p>
         </article>
-        <article className="summary-card summary-card-wide">
-          <h3>Most popular exams</h3>
+        <article className="summary-card summary-card-wide history-top-card">
+          <p className="history-metric-label">Most popular exams</p>
           {topExams.length === 0 ? (
-            <p>No exam data in this filter.</p>
+            <p className="muted small">No exam data in this filter.</p>
           ) : (
-            <div className="popularity-list">
+            <div className="popularity-list history-top-list">
               {topExams.map(([examName, count]) => (
                 <p key={examName}>
                   <strong>{examName}</strong>: {count}
@@ -311,38 +324,52 @@ export default function AdminHistorySection({ orders }: AdminHistorySectionProps
         </article>
       </div>
 
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Exam</th>
-              <th>Vet</th>
-              <th>Clinic</th>
-              <th>Ordered At</th>
-              <th>Value</th>
-              <th>Order</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredRows.length === 0 ? (
+      <section className="history-table-panel">
+        <div className="history-table-heading">
+          <div>
+            <p className="eyebrow">Filtered results</p>
+            <h3>Exam items in view</h3>
+          </div>
+          <p className="muted small">
+            {filteredRows.length} row{filteredRows.length === 1 ? '' : 's'} ready for review.
+          </p>
+        </div>
+
+        <div className="table-wrap">
+          <table>
+            <thead>
               <tr>
-                <td colSpan={6}>No exam history found for the selected filters.</td>
+                <th>Exam</th>
+                <th>Vet</th>
+                <th>Clinic</th>
+                <th>Ordered At</th>
+                <th>Value</th>
+                <th>Order</th>
               </tr>
-            ) : (
-              filteredRows.map((row) => (
-                <tr key={row.row_id}>
-                  <td>{row.exam_name}</td>
-                  <td>{row.vet_name}</td>
-                  <td>{row.clinic_name}</td>
-                  <td>{formatDateTime(row.created_at)}</td>
-                  <td>{formatCurrency(row.exam_value)}</td>
-                  <td>#{row.order_id}</td>
+            </thead>
+            <tbody>
+              {filteredRows.length === 0 ? (
+                <tr>
+                  <td colSpan={6}>No exam history found for the selected filters.</td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : (
+                filteredRows.map((row) => (
+                  <tr key={row.row_id}>
+                    <td>
+                      <strong>{row.exam_name}</strong>
+                    </td>
+                    <td>{row.vet_name}</td>
+                    <td>{row.clinic_name}</td>
+                    <td>{formatDateTime(row.created_at)}</td>
+                    <td>{formatCurrency(row.exam_value)}</td>
+                    <td>#{row.order_id}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </section>
   )
 }

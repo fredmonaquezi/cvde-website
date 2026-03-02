@@ -28,6 +28,9 @@ export default function AdminExamValuesSection({
   const [newExamDescription, setNewExamDescription] = useState('')
   const [newExamPrice, setNewExamPrice] = useState('')
   const toast = useToast()
+  const activeExamCount = examCatalog.filter((exam) => exam.active).length
+  const inactiveExamCount = examCatalog.length - activeExamCount
+  const categoryCount = new Set(examCatalog.map((exam) => (exam.category?.trim() ? exam.category.trim() : 'Uncategorized'))).size
 
   useEffect(() => {
     const nextPriceDrafts: Record<number, string> = {}
@@ -145,54 +148,87 @@ export default function AdminExamValuesSection({
 
   return (
     <section className="section">
-      <h2>Exam Value Management</h2>
-      <p className="muted small">Add new exams and edit existing ones here. Only active exams appear in "Order a Vet Exam".</p>
+      <div className="section-heading">
+        <div>
+          <h2>Exam Value Management</h2>
+          <p className="muted small">Add new exams, control visibility, and keep pricing consistent for veterinarians.</p>
+        </div>
+      </div>
 
-      <form className="form inline-form section" onSubmit={addExam}>
-        <label>
-          Exam name
-          <input required value={newExamName} onChange={(event) => setNewExamName(event.target.value)} />
-        </label>
-        <label>
-          Category
-          <input placeholder="Blood Exams" value={newExamCategory} onChange={(event) => setNewExamCategory(event.target.value)} />
-        </label>
-        <label>
-          Description
-          <input value={newExamDescription} onChange={(event) => setNewExamDescription(event.target.value)} />
-        </label>
-        <label>
-          Price
-          <input
-            required
-            min={0}
-            step="0.01"
-            type="number"
-            value={newExamPrice}
-            onChange={(event) => setNewExamPrice(event.target.value)}
-          />
-        </label>
-        <button type="submit">Add Exam</button>
-      </form>
+      <div className="history-summary-grid exam-management-stats">
+        <article className="summary-card exam-management-stat">
+          <p className="history-metric-label">Active exams</p>
+          <h3 className="history-metric-value">{activeExamCount}</h3>
+          <p className="muted small">Visible in the vet ordering flow</p>
+        </article>
+        <article className="summary-card exam-management-stat">
+          <p className="history-metric-label">Inactive exams</p>
+          <h3 className="history-metric-value">{inactiveExamCount}</h3>
+          <p className="muted small">Hidden until re-enabled</p>
+        </article>
+        <article className="summary-card exam-management-stat">
+          <p className="history-metric-label">Categories</p>
+          <h3 className="history-metric-value">{categoryCount}</h3>
+          <p className="muted small">Distinct exam groupings in use</p>
+        </article>
+      </div>
 
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Exam Name</th>
-              <th>Category</th>
-              <th>Description</th>
-              <th>Status</th>
-              <th>Current Price</th>
-              <th>New Price</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {examCatalog.map((exam) => (
-              <tr key={exam.id}>
-                <td>
+      <section className="exam-management-panel">
+        <div className="exam-management-panel-head">
+          <div>
+            <p className="eyebrow">Create new exam</p>
+            <h3>Add an exam to the catalog</h3>
+          </div>
+          <p className="muted small">Only active exams appear in the veterinarian order screen.</p>
+        </div>
+
+        <form className="form inline-form exam-inline-form" onSubmit={addExam}>
+          <label>
+            Exam name
+            <input required value={newExamName} onChange={(event) => setNewExamName(event.target.value)} />
+          </label>
+          <label>
+            Category
+            <input placeholder="Blood Exams" value={newExamCategory} onChange={(event) => setNewExamCategory(event.target.value)} />
+          </label>
+          <label>
+            Description
+            <input value={newExamDescription} onChange={(event) => setNewExamDescription(event.target.value)} />
+          </label>
+          <label>
+            Price
+            <input
+              required
+              min={0}
+              step="0.01"
+              type="number"
+              value={newExamPrice}
+              onChange={(event) => setNewExamPrice(event.target.value)}
+            />
+          </label>
+          <button type="submit">Add Exam</button>
+        </form>
+      </section>
+
+      <section className="exam-management-panel">
+        <div className="exam-management-panel-head">
+          <div>
+            <p className="eyebrow">Catalog controls</p>
+            <h3>Edit prices, names, and availability</h3>
+          </div>
+          <p className="muted small">{examCatalog.length} exam{examCatalog.length === 1 ? '' : 's'} currently in the catalog.</p>
+        </div>
+
+        <div className="exam-editor-list exam-management-table-wrap">
+          {examCatalog.map((exam) => (
+            <article className="exam-editor-card" key={exam.id}>
+              <div className="exam-editor-card-tag">Exam #{exam.id}</div>
+
+              <div className="exam-editor-top">
+                <label className="exam-editor-name-field">
+                  Exam Name
                   <input
+                    className="exam-editor-name-input"
                     value={nameDrafts[exam.id] ?? exam.name}
                     onChange={(event) =>
                       setNameDrafts((previous) => ({
@@ -201,8 +237,10 @@ export default function AdminExamValuesSection({
                       }))
                     }
                   />
-                </td>
-                <td>
+                </label>
+
+                <label className="exam-editor-category-field">
+                  Category
                   <input
                     value={categoryDrafts[exam.id] ?? exam.category ?? ''}
                     onChange={(event) =>
@@ -212,54 +250,68 @@ export default function AdminExamValuesSection({
                       }))
                     }
                   />
-                </td>
-                <td>
-                  <input
-                    value={descriptionDrafts[exam.id] ?? exam.description ?? ''}
-                    onChange={(event) =>
-                      setDescriptionDrafts((previous) => ({
-                        ...previous,
-                        [exam.id]: event.target.value,
-                      }))
-                    }
-                  />
-                </td>
-                <td>
-                  <span className={activeDrafts[exam.id] ? 'status status-active' : 'status status-inactive'}>
-                    {activeDrafts[exam.id] ? 'active' : 'inactive'}
-                  </span>
-                </td>
-                <td>{formatCurrency(exam.current_price)}</td>
-                <td>
-                  <input
-                    className="qty-input"
-                    min={0}
-                    step="0.01"
-                    type="number"
-                    value={priceDrafts[exam.id] ?? String(exam.current_price)}
-                    onChange={(event) =>
-                      setPriceDrafts((previous) => ({
-                        ...previous,
-                        [exam.id]: event.target.value,
-                      }))
-                    }
-                  />
-                </td>
-                <td>
-                  <div className="row-actions">
-                    <button className="secondary" type="button" onClick={() => void saveExam(exam.id)}>
-                      Save
-                    </button>
-                    <button className="secondary" type="button" onClick={() => void toggleExamActive(exam.id)}>
-                      {activeDrafts[exam.id] ? 'Disable' : 'Enable'}
-                    </button>
+                </label>
+              </div>
+
+              <label className="exam-editor-description-field">
+                Description
+                <textarea
+                  rows={1}
+                  value={descriptionDrafts[exam.id] ?? exam.description ?? ''}
+                  onChange={(event) =>
+                    setDescriptionDrafts((previous) => ({
+                      ...previous,
+                      [exam.id]: event.target.value,
+                    }))
+                  }
+                />
+              </label>
+
+              <div className="exam-editor-footer">
+                <div className="exam-editor-meta">
+                  <div className="exam-editor-meta-block">
+                    <span className="exam-editor-meta-label">Status</span>
+                    <span className={activeDrafts[exam.id] ? 'status status-active' : 'status status-inactive'}>
+                      {activeDrafts[exam.id] ? 'active' : 'inactive'}
+                    </span>
                   </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+
+                  <div className="exam-editor-meta-block">
+                    <span className="exam-editor-meta-label">Current Price</span>
+                    <strong>{formatCurrency(exam.current_price)}</strong>
+                  </div>
+
+                  <label className="exam-editor-price-field">
+                    <span className="exam-editor-meta-label">New Price</span>
+                    <input
+                      className="qty-input"
+                      min={0}
+                      step="0.01"
+                      type="number"
+                      value={priceDrafts[exam.id] ?? String(exam.current_price)}
+                      onChange={(event) =>
+                        setPriceDrafts((previous) => ({
+                          ...previous,
+                          [exam.id]: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                </div>
+
+                <div className="row-actions exam-management-actions">
+                  <button className="secondary" type="button" onClick={() => void saveExam(exam.id)}>
+                    Save
+                  </button>
+                  <button className="secondary" type="button" onClick={() => void toggleExamActive(exam.id)}>
+                    {activeDrafts[exam.id] ? 'Disable' : 'Enable'}
+                  </button>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
     </section>
   )
 }

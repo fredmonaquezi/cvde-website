@@ -20,20 +20,19 @@ export default function VetHistorySection({ orders }: VetHistorySectionProps) {
               <th>Exams</th>
               <th>Total</th>
               <th>Status</th>
-              <th>Scheduled</th>
             </tr>
           </thead>
           <tbody>
             {orders.length === 0 ? (
               <tr>
-                <td colSpan={7}>No exam orders yet.</td>
+                <td colSpan={6}>No exam orders yet.</td>
               </tr>
             ) : (
               orders.map((order) => (
                 <tr key={order.id}>
                   <td>{formatDateTime(order.created_at)}</td>
                   <td>
-                    {order.patient_name}
+                    <strong>{order.patient_name}</strong>
                     <p className="small muted">
                       {order.species ?? 'Species not provided'}
                       {order.breed ? ` / ${order.breed}` : ''}
@@ -45,7 +44,6 @@ export default function VetHistorySection({ orders }: VetHistorySectionProps) {
                   <td>
                     <StatusBadge status={order.status} />
                   </td>
-                  <td>{formatDateTime(order.scheduled_for)}</td>
                 </tr>
               ))
             )}

@@ -4,6 +4,14 @@ import type { Session } from '@supabase/supabase-js'
 import { useToast } from '../../../components/toast/useToast'
 import { completeVetRegistration } from '../../../services/authService'
 import type { Profile, VetProfessionalType } from '../../../types/app'
+import {
+  BRAZIL_STATE_OPTIONS,
+  buildClinicAddress,
+  createEmptyClinicAddressFields,
+  isClinicAddressComplete,
+  parseClinicAddress,
+  type ClinicAddressFields,
+} from '../../../utils/clinicAddress'
 import { formatPhone, formatSsn, toDigitsOnly } from '../../../utils/format'
 
 type VetRegistrationGateProps = {
@@ -19,7 +27,7 @@ export default function VetRegistrationGate({ profile, session, onProfileUpdated
   const [phone, setPhone] = useState(formatPhone(profile.phone ?? ''))
   const [professionalType, setProfessionalType] = useState<VetProfessionalType | ''>(profile.professional_type ?? '')
   const [clinicName, setClinicName] = useState(profile.clinic_name ?? '')
-  const [clinicAddress, setClinicAddress] = useState(profile.clinic_address ?? '')
+  const [clinicAddress, setClinicAddress] = useState<ClinicAddressFields>(() => parseClinicAddress(profile.clinic_address))
   const [isSubmitting, setIsSubmitting] = useState(false)
   const toast = useToast()
 
@@ -41,8 +49,8 @@ export default function VetRegistrationGate({ profile, session, onProfileUpdated
       return
     }
 
-    if (professionalType === 'clinic' && (!clinicName.trim() || !clinicAddress.trim())) {
-      toast.error('Please provide the clinic name and clinic address.')
+    if (professionalType === 'clinic' && (!clinicName.trim() || !isClinicAddressComplete(clinicAddress))) {
+      toast.error('Please provide the full clinic address, including street, number, neighborhood, city, and state.')
       return
     }
 
@@ -54,7 +62,7 @@ export default function VetRegistrationGate({ profile, session, onProfileUpdated
       phone: phone.trim(),
       professionalType,
       clinicName: professionalType === 'clinic' ? clinicName.trim() : null,
-      clinicAddress: professionalType === 'clinic' ? clinicAddress.trim() : null,
+      clinicAddress: professionalType === 'clinic' ? buildClinicAddress(clinicAddress) : null,
     })
     setIsSubmitting(false)
 
@@ -65,6 +73,13 @@ export default function VetRegistrationGate({ profile, session, onProfileUpdated
 
     onProfileUpdated(data)
     toast.success('Registration completed successfully.')
+  }
+
+  const updateClinicAddressField = (field: keyof ClinicAddressFields, value: string) => {
+    setClinicAddress((current) => ({
+      ...current,
+      [field]: value,
+    }))
   }
 
   return (
@@ -137,7 +152,7 @@ export default function VetRegistrationGate({ profile, session, onProfileUpdated
                 setProfessionalType(nextProfessionalType)
                 if (nextProfessionalType !== 'clinic') {
                   setClinicName('')
-                  setClinicAddress('')
+                  setClinicAddress(createEmptyClinicAddressFields())
                 }
               }}
             >
@@ -149,20 +164,86 @@ export default function VetRegistrationGate({ profile, session, onProfileUpdated
         </div>
 
         {professionalType === 'clinic' ? (
-          <div className="grid two">
+          <>
             <label>
               <span className="field-label">
                 Clinic Name <span className="field-required">*</span>
               </span>
               <input required value={clinicName} onChange={(event) => setClinicName(event.target.value)} />
             </label>
-            <label>
-              <span className="field-label">
-                Clinic Address <span className="field-required">*</span>
-              </span>
-              <input required value={clinicAddress} onChange={(event) => setClinicAddress(event.target.value)} />
-            </label>
-          </div>
+
+            <section className="form-subsection">
+              <div className="form-subsection-header">
+                <div>
+                  <h3>Clinic Address</h3>
+                  <p className="muted small">Fill in the complete clinic location for scheduling and collection support.</p>
+                </div>
+              </div>
+
+              <div className="grid address-grid-line-one">
+                <label>
+                  <span className="field-label">
+                    Street Name <span className="field-required">*</span>
+                  </span>
+                  <input
+                    required
+                    value={clinicAddress.street}
+                    onChange={(event) => updateClinicAddressField('street', event.target.value)}
+                  />
+                </label>
+                <label>
+                  <span className="field-label">
+                    Number <span className="field-required">*</span>
+                  </span>
+                  <input
+                    required
+                    value={clinicAddress.number}
+                    onChange={(event) => updateClinicAddressField('number', event.target.value)}
+                  />
+                </label>
+              </div>
+
+              <div className="grid address-grid-line-two">
+                <label>
+                  <span className="field-label">
+                    Neighborhood <span className="field-required">*</span>
+                  </span>
+                  <input
+                    required
+                    value={clinicAddress.neighborhood}
+                    onChange={(event) => updateClinicAddressField('neighborhood', event.target.value)}
+                  />
+                </label>
+                <label>
+                  <span className="field-label">
+                    City <span className="field-required">*</span>
+                  </span>
+                  <input
+                    required
+                    value={clinicAddress.city}
+                    onChange={(event) => updateClinicAddressField('city', event.target.value)}
+                  />
+                </label>
+                <label>
+                  <span className="field-label">
+                    State <span className="field-required">*</span>
+                  </span>
+                  <select
+                    required
+                    value={clinicAddress.state}
+                    onChange={(event) => updateClinicAddressField('state', event.target.value)}
+                  >
+                    <option value="">Select a state</option>
+                    {BRAZIL_STATE_OPTIONS.map((stateOption) => (
+                      <option key={stateOption.value} value={stateOption.value}>
+                        {stateOption.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </section>
+          </>
         ) : null}
 
         <button disabled={isSubmitting} type="submit">
