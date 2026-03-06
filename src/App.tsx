@@ -1,21 +1,23 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import BrandLockup from './components/BrandLockup'
 import { useAuthSession } from './hooks/useAuthSession'
+import { useI18n } from './i18n'
 import AuthPage from './pages/AuthPage'
 import VetDashboard from './pages/VetDashboard'
 import AdminDashboard from './pages/AdminDashboard'
 import MissingProfilePage from './pages/MissingProfilePage'
 
 function App() {
+  const { t } = useI18n()
   const { session, profile, isLoading, signOut, setProfile, defaultPath } = useAuthSession()
 
   if (isLoading) {
     return (
       <main className="page">
         <section className="card centered-panel loading-card">
-          <BrandLockup eyebrow="Preparing your workspace" subtitle="Secure access to exams, pricing, and operations." />
+          <BrandLockup eyebrow={t('app.loading.eyebrow')} subtitle={t('app.loading.subtitle')} />
           <div aria-hidden="true" className="loading-indicator" />
-          <p className="muted">Loading your dashboard.</p>
+          <p className="muted">{t('app.loading.message')}</p>
         </section>
       </main>
     )

@@ -1,5 +1,7 @@
 import type { OrderStatus } from '../types/app'
+import { useI18n } from '../i18n'
 
 export default function StatusBadge({ status }: { status: OrderStatus }) {
-  return <span className={`status status-${status}`}>{status.replace('_', ' ')}</span>
+  const { t } = useI18n()
+  return <span className={`status status-${status}`}>{t(`status.${status}`)}</span>
 }

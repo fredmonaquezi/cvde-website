@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase'
 import type { ExamCatalogItem, ExamOrder, FaqEntry, SelectedExam } from '../types/app'
 import { parseSelectedExams } from '../utils/format'
+import { mapServiceError, mapServiceLoadError } from './errorMapper'
 import type { ServiceMutationResult, ServiceResult } from './types'
 
 export type VetDashboardData = {
@@ -65,10 +66,11 @@ export async function fetchVetDashboardData(): Promise<ServiceResult<VetDashboar
     examError = fallback.error
   }
 
-  if (examError || orderError || faqError) {
+  const firstError = examError ?? orderError ?? faqError
+  if (firstError) {
     return {
       data: null,
-      error: examError?.message ?? orderError?.message ?? faqError?.message ?? 'Failed to load data.',
+      error: mapServiceLoadError(firstError),
     }
   }
 
@@ -124,6 +126,6 @@ export async function createVetExamOrder(input: CreateVetExamOrderInput): Promis
   })
 
   return {
-    error: error?.message ?? null,
+    error: error ? mapServiceError(error) : null,
   }
 }

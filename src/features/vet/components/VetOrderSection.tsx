@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { useToast } from '../../../components/toast/useToast'
+import { useI18n } from '../../../i18n'
 import { createVetExamOrder } from '../../../services/vetService'
 import type { ExamCatalogItem, Profile, SelectedExam } from '../../../types/app'
 import { formatCurrency, formatPhone, formatSsn, toDigitsOnly } from '../../../utils/format'
@@ -14,6 +15,7 @@ type VetOrderSectionProps = {
 }
 
 export default function VetOrderSection({ examCatalog, profile, session, onOrderCreated }: VetOrderSectionProps) {
+  const { t } = useI18n()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [ownerName, setOwnerName] = useState('')
   const [ownerSsn, setOwnerSsn] = useState('')
@@ -50,7 +52,7 @@ export default function VetOrderSection({ examCatalog, profile, session, onOrder
     const grouped = new Map<string, ExamCatalogItem[]>()
 
     examCatalog.forEach((exam) => {
-      const categoryName = exam.category?.trim() || 'Other Exams'
+      const categoryName = exam.category?.trim() || t('vetOrder.defaultExamCategory')
       const existing = grouped.get(categoryName)
 
       if (existing) {
@@ -61,7 +63,7 @@ export default function VetOrderSection({ examCatalog, profile, session, onOrder
     })
 
     return Array.from(grouped.entries())
-  }, [examCatalog])
+  }, [examCatalog, t])
 
   const handleExamToggle = (examId: number, checked: boolean) => {
     setSelectedExamIds((previous) => {
@@ -95,27 +97,27 @@ export default function VetOrderSection({ examCatalog, profile, session, onOrder
     event.preventDefault()
 
     if (toDigitsOnly(ownerSsn).length !== 11) {
-      toast.error('Owner Social Security Number must have 11 digits.')
+      toast.error(t('vetOrder.validation.ownerCpfLength'))
       return
     }
 
     if (toDigitsOnly(ownerPhone).length !== 11) {
-      toast.error('Owner Phone must have 11 digits.')
+      toast.error(t('vetOrder.validation.ownerPhoneLength'))
       return
     }
 
     if (!species.trim()) {
-      toast.error('Species is required.')
+      toast.error(t('vetOrder.validation.speciesRequired'))
       return
     }
 
     if (!ageYears) {
-      toast.error('Age is required.')
+      toast.error(t('vetOrder.validation.ageRequired'))
       return
     }
 
     if (selectedExams.length === 0) {
-      toast.error('Select at least one exam before sending the order.')
+      toast.error(t('vetOrder.validation.examRequired'))
       return
     }
 
@@ -151,7 +153,7 @@ export default function VetOrderSection({ examCatalog, profile, session, onOrder
       return
     }
 
-    toast.success('Exam order sent successfully.')
+    toast.success(t('vetOrder.toast.orderCreated'))
     resetOrderForm()
     setIsSubmitting(false)
     await onOrderCreated()
@@ -159,19 +161,21 @@ export default function VetOrderSection({ examCatalog, profile, session, onOrder
 
   return (
     <form className="form section" onSubmit={handleSubmitOrder}>
-      <h2>Order a New Exam</h2>
-      <p className="muted small">Fields with <span className="field-required">*</span> are required.</p>
+      <h2>{t('vetOrder.title')}</h2>
+      <p className="muted small">
+        {t('common.requiredFieldsPrefix')} <span className="field-required">*</span> {t('common.requiredFieldsSuffix')}
+      </p>
 
       <div className="grid two">
         <label>
           <span className="field-label">
-            Name of Owner <span className="field-required">*</span>
+            {t('vetOrder.fields.ownerName')} <span className="field-required">*</span>
           </span>
           <input required value={ownerName} onChange={(event) => setOwnerName(event.target.value)} />
         </label>
         <label>
           <span className="field-label">
-            Social Security Number <span className="field-required">*</span>
+            {t('vetOrder.fields.ownerCpf')} <span className="field-required">*</span>
           </span>
           <input
             required
@@ -187,7 +191,7 @@ export default function VetOrderSection({ examCatalog, profile, session, onOrder
       <div className="grid two">
         <label>
           <span className="field-label">
-            Phone <span className="field-required">*</span>
+            {t('vetOrder.fields.ownerPhone')} <span className="field-required">*</span>
           </span>
           <input
             required
@@ -200,7 +204,7 @@ export default function VetOrderSection({ examCatalog, profile, session, onOrder
         </label>
         <label>
           <span className="field-label">
-            Address <span className="field-optional">(optional)</span>
+            {t('vetOrder.fields.ownerAddress')} <span className="field-optional">{t('common.optionalLabel')}</span>
           </span>
           <input value={ownerAddress} onChange={(event) => setOwnerAddress(event.target.value)} />
         </label>
@@ -211,13 +215,13 @@ export default function VetOrderSection({ examCatalog, profile, session, onOrder
       <div className="grid two">
         <label>
           <span className="field-label">
-            Name of Animal <span className="field-required">*</span>
+            {t('vetOrder.fields.patientName')} <span className="field-required">*</span>
           </span>
           <input required value={patientName} onChange={(event) => setPatientName(event.target.value)} />
         </label>
         <label>
           <span className="field-label">
-            Age <span className="field-required">*</span>
+            {t('vetOrder.fields.age')} <span className="field-required">*</span>
           </span>
           <input required min={0} step={1} type="number" value={ageYears} onChange={(event) => setAgeYears(event.target.value)} />
         </label>
@@ -226,19 +230,19 @@ export default function VetOrderSection({ examCatalog, profile, session, onOrder
       <div className="grid three">
         <label>
           <span className="field-label">
-            Species <span className="field-required">*</span>
+            {t('vetOrder.fields.species')} <span className="field-required">*</span>
           </span>
           <input required value={species} onChange={(event) => setSpecies(event.target.value)} />
         </label>
         <label>
           <span className="field-label">
-            Breed <span className="field-optional">(optional)</span>
+            {t('vetOrder.fields.breed')} <span className="field-optional">{t('common.optionalLabel')}</span>
           </span>
           <input value={breed} onChange={(event) => setBreed(event.target.value)} />
         </label>
         <label>
           <span className="field-label">
-            Weight (kg) <span className="field-optional">(optional)</span>
+            {t('vetOrder.fields.weight')} <span className="field-optional">{t('common.optionalLabel')}</span>
           </span>
           <input min={0} step="0.01" type="number" value={weightKg} onChange={(event) => setWeightKg(event.target.value)} />
         </label>
@@ -247,29 +251,29 @@ export default function VetOrderSection({ examCatalog, profile, session, onOrder
       <div className="grid two">
         <label>
           <span className="field-label">
-            Neutered Status <span className="field-optional">(optional)</span>
+            {t('vetOrder.fields.neuterStatus')} <span className="field-optional">{t('common.optionalLabel')}</span>
           </span>
           <select value={neuterStatus} onChange={(event) => setNeuterStatus(event.target.value as typeof neuterStatus)}>
-            <option value="">Select</option>
-            <option value="neutered">Neutered</option>
-            <option value="not_neutered">Not Neutered</option>
-            <option value="unknown">Doesn't know</option>
+            <option value="">{t('common.select')}</option>
+            <option value="neutered">{t('vetOrder.neuter.neutered')}</option>
+            <option value="not_neutered">{t('vetOrder.neuter.notNeutered')}</option>
+            <option value="unknown">{t('vetOrder.neuter.unknown')}</option>
           </select>
         </label>
         <label>
           <span className="field-label">
-            Reactive Status <span className="field-optional">(optional)</span>
+            {t('vetOrder.fields.reactiveStatus')} <span className="field-optional">{t('common.optionalLabel')}</span>
           </span>
           <select value={reactiveStatus} onChange={(event) => setReactiveStatus(event.target.value as typeof reactiveStatus)}>
-            <option value="">Select</option>
-            <option value="reactive">Reactive</option>
-            <option value="not_reactive">Not Reactive</option>
+            <option value="">{t('common.select')}</option>
+            <option value="reactive">{t('vetOrder.reactive.reactive')}</option>
+            <option value="not_reactive">{t('vetOrder.reactive.notReactive')}</option>
           </select>
         </label>
       </div>
 
       <div className="section">
-        <h3>Exam Selection</h3>
+        <h3>{t('vetOrder.examSelection.title')}</h3>
         {examsByCategory.map(([categoryName, exams]) => (
           <details className="exam-category-group" key={categoryName} open>
             <summary>{`${categoryName} (${exams.length})`}</summary>
@@ -277,9 +281,9 @@ export default function VetOrderSection({ examCatalog, profile, session, onOrder
               <table>
                 <thead>
                   <tr>
-                    <th>Select</th>
-                    <th>Exam</th>
-                    <th>Price</th>
+                    <th>{t('vetOrder.examSelection.table.select')}</th>
+                    <th>{t('vetOrder.examSelection.table.exam')}</th>
+                    <th>{t('vetOrder.examSelection.table.price')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -296,7 +300,7 @@ export default function VetOrderSection({ examCatalog, profile, session, onOrder
                         </td>
                         <td>
                           <strong>{exam.name}</strong>
-                          <p className="small muted">{exam.description ?? 'No description'}</p>
+                          <p className="small muted">{exam.description ?? t('vetOrder.examSelection.noDescription')}</p>
                         </td>
                         <td>{formatCurrency(exam.current_price)}</td>
                       </tr>
@@ -307,7 +311,7 @@ export default function VetOrderSection({ examCatalog, profile, session, onOrder
             </div>
           </details>
         ))}
-        <p className="total-row">Estimated total: {formatCurrency(totalValue)}</p>
+        <p className="total-row">{t('vetOrder.examSelection.estimatedTotal', { total: formatCurrency(totalValue) })}</p>
       </div>
 
       <div className="form-section-divider" aria-hidden="true" />
@@ -315,15 +319,13 @@ export default function VetOrderSection({ examCatalog, profile, session, onOrder
       <section className="request-collection-callout">
         <label className="checkbox-field request-collection-toggle">
           <input checked={requestCollection} type="checkbox" onChange={(event) => setRequestCollection(event.target.checked)} />
-          <span className="field-label">Request collection</span>
+          <span className="field-label">{t('vetOrder.collection.toggle')}</span>
         </label>
-        <p className="muted">
-          Select this if CVDE should send the driver to collect the sample at the vet clinic.
-        </p>
+        <p className="muted">{t('vetOrder.collection.help')}</p>
       </section>
 
       <button disabled={isSubmitting} type="submit">
-        {isSubmitting ? 'Sending order...' : 'Send Exam Order'}
+        {isSubmitting ? t('vetOrder.submit.loading') : t('vetOrder.submit.default')}
       </button>
     </form>
   )

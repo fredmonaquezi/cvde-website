@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
+import { useI18n } from '../../i18n'
 import { ToastContext, type ToastApi, type ToastType } from './toast-context'
 
 type ToastItem = {
@@ -11,6 +12,7 @@ type ToastItem = {
 const TOAST_DURATION_MS = 4000
 
 export function ToastProvider({ children }: { children: ReactNode }) {
+  const { t } = useI18n()
   const [toasts, setToasts] = useState<ToastItem[]>([])
   const nextIdRef = useRef(1)
   const timersRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map())
@@ -61,7 +63,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {toasts.map((toast) => (
           <div className={`toast toast-${toast.type}`} key={toast.id}>
             <p>{toast.message}</p>
-            <button aria-label="Dismiss notification" className="toast-close" onClick={() => removeToast(toast.id)} type="button">
+            <button aria-label={t('toast.dismissAria')} className="toast-close" onClick={() => removeToast(toast.id)} type="button">
               x
             </button>
           </div>

@@ -1,6 +1,7 @@
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import type { Profile, VetProfessionalType } from '../types/app'
+import { mapServiceError, mapServiceLoadError } from './errorMapper'
 import type { ServiceMutationResult, ServiceResult } from './types'
 
 type SignUpInput = {
@@ -47,7 +48,7 @@ export async function signUpVetAccount({ email, password, fullName, emailRedirec
   if (error) {
     return {
       data: null,
-      error: error.message,
+      error: mapServiceError(error),
     }
   }
 
@@ -66,14 +67,14 @@ export async function signInWithEmailPassword(email: string, password: string): 
   })
 
   return {
-    error: error?.message ?? null,
+    error: error ? mapServiceError(error) : null,
   }
 }
 
 export async function signOutCurrentUser(): Promise<ServiceMutationResult> {
   const { error } = await supabase.auth.signOut()
   return {
-    error: error?.message ?? null,
+    error: error ? mapServiceError(error) : null,
   }
 }
 
@@ -83,7 +84,7 @@ export async function getCurrentSession(): Promise<ServiceResult<Session | null>
   if (error) {
     return {
       data: null,
-      error: error.message,
+      error: mapServiceError(error),
     }
   }
 
@@ -119,7 +120,7 @@ export async function fetchProfileByUserId(userId: string): Promise<ServiceResul
     if (fallback.error) {
       return {
         data: null,
-        error: fallback.error.message,
+        error: mapServiceLoadError(fallback.error),
       }
     }
 
@@ -142,7 +143,7 @@ export async function fetchProfileByUserId(userId: string): Promise<ServiceResul
   if (error) {
     return {
       data: null,
-      error: error.message,
+      error: mapServiceLoadError(error),
     }
   }
 
@@ -190,7 +191,7 @@ async function saveVetProfileDetails(
   if (error) {
     return {
       data: null,
-      error: error.message,
+      error: mapServiceError(error),
     }
   }
 
@@ -204,7 +205,7 @@ export async function updateUserEmail(email: string): Promise<ServiceMutationRes
   const { error } = await supabase.auth.updateUser({ email })
 
   return {
-    error: error?.message ?? null,
+    error: error ? mapServiceError(error) : null,
   }
 }
 
@@ -212,6 +213,6 @@ export async function updateUserPassword(password: string): Promise<ServiceMutat
   const { error } = await supabase.auth.updateUser({ password })
 
   return {
-    error: error?.message ?? null,
+    error: error ? mapServiceError(error) : null,
   }
 }

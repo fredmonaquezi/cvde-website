@@ -6,30 +6,8 @@ import AdminFaqSection from '../features/admin/components/AdminFaqSection'
 import AdminHistorySection from '../features/admin/components/AdminHistorySection'
 import AdminOrdersSection from '../features/admin/components/AdminOrdersSection'
 import { useAdminDashboardData } from '../hooks/useAdminDashboardData'
+import { useI18n } from '../i18n'
 import type { AdminTab, Profile } from '../types/app'
-
-const ADMIN_TABS: Array<{ id: AdminTab; label: string; description: string }> = [
-  {
-    id: 'orders',
-    label: 'Orders',
-    description: 'Review and update all incoming requests.',
-  },
-  {
-    id: 'history',
-    label: 'History',
-    description: 'Inspect performance and export filtered reports.',
-  },
-  {
-    id: 'prices',
-    label: 'Exam Values',
-    description: 'Control pricing, names, categories, and status.',
-  },
-  {
-    id: 'faq',
-    label: 'FAQ',
-    description: 'Maintain the answers shown to veterinarians.',
-  },
-]
 
 type AdminDashboardProps = {
   profile: Profile
@@ -37,9 +15,32 @@ type AdminDashboardProps = {
 }
 
 export default function AdminDashboard({ profile, onSignOut }: AdminDashboardProps) {
+  const { t } = useI18n()
   const [activeTab, setActiveTab] = useState<AdminTab>('orders')
   const { examCatalog, orders, faqEntries, driverPhone, isLoading, loadError, reload } = useAdminDashboardData()
   const toast = useToast()
+  const adminTabs: Array<{ id: AdminTab; label: string; description: string }> = [
+    {
+      id: 'orders',
+      label: t('adminDashboard.tab.orders.label'),
+      description: t('adminDashboard.tab.orders.description'),
+    },
+    {
+      id: 'history',
+      label: t('adminDashboard.tab.history.label'),
+      description: t('adminDashboard.tab.history.description'),
+    },
+    {
+      id: 'prices',
+      label: t('adminDashboard.tab.prices.label'),
+      description: t('adminDashboard.tab.prices.description'),
+    },
+    {
+      id: 'faq',
+      label: t('adminDashboard.tab.faq.label'),
+      description: t('adminDashboard.tab.faq.description'),
+    },
+  ]
 
   useEffect(() => {
     if (loadError) {
@@ -71,50 +72,48 @@ export default function AdminDashboard({ profile, onSignOut }: AdminDashboardPro
     <main className="page">
       <section className="card dashboard-card">
         <div className="shell-header">
-          <BrandLockup compact subtitle="Admin console" />
+          <BrandLockup compact subtitle={t('adminDashboard.brand.subtitle')} />
           <div className="header-actions">
             <div className="profile-trigger">
               <span className="profile-avatar" aria-hidden="true">
                 {(profile.full_name?.trim().charAt(0) || 'A').toUpperCase()}
               </span>
-              {profile.full_name ?? 'Administrator'}
+              {profile.full_name ?? t('adminDashboard.profileFallback')}
             </div>
             <button className="secondary" type="button" onClick={onSignOut}>
-              Sign out
+              {t('common.signOut')}
             </button>
           </div>
         </div>
 
         <div className="hero-grid">
           <section className="hero-panel">
-            <p className="eyebrow">Operations overview</p>
-            <h1 className="hero-title">Manage CVDE in one clean control room.</h1>
-            <p className="hero-copy">
-              Incoming orders, pricing controls, FAQ management, and reporting are grouped into clear operational blocks.
-            </p>
+            <p className="eyebrow">{t('adminDashboard.hero.eyebrow')}</p>
+            <h1 className="hero-title">{t('adminDashboard.hero.title')}</h1>
+            <p className="hero-copy">{t('adminDashboard.hero.copy')}</p>
           </section>
 
           <div className="hero-stats">
             <article className="hero-stat">
-              <span className="stat-label">Open orders</span>
+              <span className="stat-label">{t('adminDashboard.stats.openOrders.label')}</span>
               <strong>{openOrdersCount}</strong>
-              <span className="stat-copy">Requests still being processed</span>
+              <span className="stat-copy">{t('adminDashboard.stats.openOrders.copy')}</span>
             </article>
             <article className="hero-stat">
-              <span className="stat-label">Collection queue</span>
+              <span className="stat-label">{t('adminDashboard.stats.collectionQueue.label')}</span>
               <strong>{collectionQueueCount}</strong>
-              <span className="stat-copy">Requests awaiting sample receipt</span>
+              <span className="stat-copy">{t('adminDashboard.stats.collectionQueue.copy')}</span>
             </article>
             <article className="hero-stat">
-              <span className="stat-label">Active exams</span>
+              <span className="stat-label">{t('adminDashboard.stats.activeExams.label')}</span>
               <strong>{activeExamCount}</strong>
-              <span className="stat-copy">Exams visible to veterinarians</span>
+              <span className="stat-copy">{t('adminDashboard.stats.activeExams.copy')}</span>
             </article>
           </div>
         </div>
 
-        <div className="dashboard-nav-grid" role="tablist" aria-label="Admin sections">
-          {ADMIN_TABS.map((tab) => (
+        <div className="dashboard-nav-grid" role="tablist" aria-label={t('adminDashboard.nav.aria')}>
+          {adminTabs.map((tab) => (
             <button
               className={activeTab === tab.id ? 'nav-tile active' : 'nav-tile'}
               key={tab.id}
@@ -127,7 +126,7 @@ export default function AdminDashboard({ profile, onSignOut }: AdminDashboardPro
           ))}
         </div>
 
-        {isLoading ? <p className="muted">Loading data...</p> : null}
+        {isLoading ? <p className="muted">{t('common.loadingData')}</p> : null}
 
         {!isLoading ? <section className="content-panel">{renderActiveSection()}</section> : null}
       </section>

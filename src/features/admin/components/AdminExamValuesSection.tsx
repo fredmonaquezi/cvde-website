@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useToast } from '../../../components/toast/useToast'
+import { useI18n } from '../../../i18n'
 import {
   createExam,
   toggleExamActive as toggleExamActiveService,
@@ -18,6 +19,7 @@ export default function AdminExamValuesSection({
   examCatalog,
   onDataChanged,
 }: AdminExamValuesSectionProps) {
+  const { t } = useI18n()
   const [priceDrafts, setPriceDrafts] = useState<Record<number, string>>({})
   const [nameDrafts, setNameDrafts] = useState<Record<number, string>>({})
   const [descriptionDrafts, setDescriptionDrafts] = useState<Record<number, string>>({})
@@ -30,7 +32,9 @@ export default function AdminExamValuesSection({
   const toast = useToast()
   const activeExamCount = examCatalog.filter((exam) => exam.active).length
   const inactiveExamCount = examCatalog.length - activeExamCount
-  const categoryCount = new Set(examCatalog.map((exam) => (exam.category?.trim() ? exam.category.trim() : 'Uncategorized'))).size
+  const categoryCount = new Set(
+    examCatalog.map((exam) => (exam.category?.trim() ? exam.category.trim() : t('adminExamValues.uncategorized'))),
+  ).size
 
   useEffect(() => {
     const nextPriceDrafts: Record<number, string> = {}
@@ -63,12 +67,12 @@ export default function AdminExamValuesSection({
     const nextActive = activeDrafts[examId] ?? false
 
     if (!nextName) {
-      toast.error('Exam name cannot be empty.')
+      toast.error(t('adminExamValues.validation.nameRequired'))
       return
     }
 
     if (!Number.isFinite(nextPrice) || nextPrice < 0) {
-      toast.error('Price must be a number greater than or equal to zero.')
+      toast.error(t('adminExamValues.validation.priceInvalid'))
       return
     }
 
@@ -83,14 +87,14 @@ export default function AdminExamValuesSection({
 
     if (error) {
       if (error.toLowerCase().includes('duplicate key')) {
-        toast.error('An exam with this name already exists.')
+        toast.error(t('adminExamValues.validation.duplicateName'))
       } else {
         toast.error(error)
       }
       return
     }
 
-    toast.success('Exam updated.')
+    toast.success(t('adminExamValues.toast.updated'))
     await onDataChanged()
   }
 
@@ -104,7 +108,7 @@ export default function AdminExamValuesSection({
       return
     }
 
-    toast.success(nextActive ? 'Exam enabled.' : 'Exam disabled.')
+    toast.success(nextActive ? t('adminExamValues.toast.enabled') : t('adminExamValues.toast.disabled'))
     await onDataChanged()
   }
 
@@ -113,12 +117,12 @@ export default function AdminExamValuesSection({
 
     const parsedPrice = Number(newExamPrice)
     if (!newExamName.trim()) {
-      toast.error('Exam name is required.')
+      toast.error(t('adminExamValues.validation.nameRequired'))
       return
     }
 
     if (!Number.isFinite(parsedPrice) || parsedPrice < 0) {
-      toast.error('Exam price must be a number greater than or equal to zero.')
+      toast.error(t('adminExamValues.validation.priceInvalid'))
       return
     }
 
@@ -131,7 +135,7 @@ export default function AdminExamValuesSection({
 
     if (error) {
       if (error.toLowerCase().includes('duplicate key')) {
-        toast.error('An exam with this name already exists.')
+        toast.error(t('adminExamValues.validation.duplicateName'))
       } else {
         toast.error(error)
       }
@@ -142,7 +146,7 @@ export default function AdminExamValuesSection({
     setNewExamCategory('')
     setNewExamDescription('')
     setNewExamPrice('')
-    toast.success('New exam added. It is now available in the vet order screen.')
+    toast.success(t('adminExamValues.toast.created'))
     await onDataChanged()
   }
 
@@ -150,53 +154,57 @@ export default function AdminExamValuesSection({
     <section className="section">
       <div className="section-heading">
         <div>
-          <h2>Exam Value Management</h2>
-          <p className="muted small">Add new exams, control visibility, and keep pricing consistent for veterinarians.</p>
+          <h2>{t('adminExamValues.title')}</h2>
+          <p className="muted small">{t('adminExamValues.subtitle')}</p>
         </div>
       </div>
 
       <div className="history-summary-grid exam-management-stats">
         <article className="summary-card exam-management-stat">
-          <p className="history-metric-label">Active exams</p>
+          <p className="history-metric-label">{t('adminExamValues.stats.active.label')}</p>
           <h3 className="history-metric-value">{activeExamCount}</h3>
-          <p className="muted small">Visible in the vet ordering flow</p>
+          <p className="muted small">{t('adminExamValues.stats.active.copy')}</p>
         </article>
         <article className="summary-card exam-management-stat">
-          <p className="history-metric-label">Inactive exams</p>
+          <p className="history-metric-label">{t('adminExamValues.stats.inactive.label')}</p>
           <h3 className="history-metric-value">{inactiveExamCount}</h3>
-          <p className="muted small">Hidden until re-enabled</p>
+          <p className="muted small">{t('adminExamValues.stats.inactive.copy')}</p>
         </article>
         <article className="summary-card exam-management-stat">
-          <p className="history-metric-label">Categories</p>
+          <p className="history-metric-label">{t('adminExamValues.stats.categories.label')}</p>
           <h3 className="history-metric-value">{categoryCount}</h3>
-          <p className="muted small">Distinct exam groupings in use</p>
+          <p className="muted small">{t('adminExamValues.stats.categories.copy')}</p>
         </article>
       </div>
 
       <section className="exam-management-panel">
         <div className="exam-management-panel-head">
           <div>
-            <p className="eyebrow">Create new exam</p>
-            <h3>Add an exam to the catalog</h3>
+            <p className="eyebrow">{t('adminExamValues.create.eyebrow')}</p>
+            <h3>{t('adminExamValues.create.title')}</h3>
           </div>
-          <p className="muted small">Only active exams appear in the veterinarian order screen.</p>
+          <p className="muted small">{t('adminExamValues.create.copy')}</p>
         </div>
 
         <form className="form inline-form exam-inline-form" onSubmit={addExam}>
           <label>
-            Exam name
+            {t('adminExamValues.form.examName')}
             <input required value={newExamName} onChange={(event) => setNewExamName(event.target.value)} />
           </label>
           <label>
-            Category
-            <input placeholder="Blood Exams" value={newExamCategory} onChange={(event) => setNewExamCategory(event.target.value)} />
+            {t('adminExamValues.form.category')}
+            <input
+              placeholder={t('adminExamValues.form.categoryPlaceholder')}
+              value={newExamCategory}
+              onChange={(event) => setNewExamCategory(event.target.value)}
+            />
           </label>
           <label>
-            Description
+            {t('adminExamValues.form.description')}
             <input value={newExamDescription} onChange={(event) => setNewExamDescription(event.target.value)} />
           </label>
           <label>
-            Price
+            {t('adminExamValues.form.price')}
             <input
               required
               min={0}
@@ -206,27 +214,27 @@ export default function AdminExamValuesSection({
               onChange={(event) => setNewExamPrice(event.target.value)}
             />
           </label>
-          <button type="submit">Add Exam</button>
+          <button type="submit">{t('adminExamValues.form.submit')}</button>
         </form>
       </section>
 
       <section className="exam-management-panel">
         <div className="exam-management-panel-head">
           <div>
-            <p className="eyebrow">Catalog controls</p>
-            <h3>Edit prices, names, and availability</h3>
+            <p className="eyebrow">{t('adminExamValues.catalog.eyebrow')}</p>
+            <h3>{t('adminExamValues.catalog.title')}</h3>
           </div>
-          <p className="muted small">{examCatalog.length} exam{examCatalog.length === 1 ? '' : 's'} currently in the catalog.</p>
+          <p className="muted small">{t('adminExamValues.catalog.count', { count: examCatalog.length })}</p>
         </div>
 
         <div className="exam-editor-list exam-management-table-wrap">
           {examCatalog.map((exam) => (
             <article className="exam-editor-card" key={exam.id}>
-              <div className="exam-editor-card-tag">Exam #{exam.id}</div>
+              <div className="exam-editor-card-tag">{t('adminExamValues.catalog.examId', { id: exam.id })}</div>
 
               <div className="exam-editor-top">
                 <label className="exam-editor-name-field">
-                  Exam Name
+                  {t('adminExamValues.form.examName')}
                   <input
                     className="exam-editor-name-input"
                     value={nameDrafts[exam.id] ?? exam.name}
@@ -240,7 +248,7 @@ export default function AdminExamValuesSection({
                 </label>
 
                 <label className="exam-editor-category-field">
-                  Category
+                  {t('adminExamValues.form.category')}
                   <input
                     value={categoryDrafts[exam.id] ?? exam.category ?? ''}
                     onChange={(event) =>
@@ -254,7 +262,7 @@ export default function AdminExamValuesSection({
               </div>
 
               <label className="exam-editor-description-field">
-                Description
+                {t('adminExamValues.form.description')}
                 <textarea
                   rows={1}
                   value={descriptionDrafts[exam.id] ?? exam.description ?? ''}
@@ -270,19 +278,19 @@ export default function AdminExamValuesSection({
               <div className="exam-editor-footer">
                 <div className="exam-editor-meta">
                   <div className="exam-editor-meta-block">
-                    <span className="exam-editor-meta-label">Status</span>
+                    <span className="exam-editor-meta-label">{t('adminExamValues.meta.status')}</span>
                     <span className={activeDrafts[exam.id] ? 'status status-active' : 'status status-inactive'}>
-                      {activeDrafts[exam.id] ? 'active' : 'inactive'}
+                      {activeDrafts[exam.id] ? t('common.statusActive') : t('common.statusInactive')}
                     </span>
                   </div>
 
                   <div className="exam-editor-meta-block">
-                    <span className="exam-editor-meta-label">Current Price</span>
+                    <span className="exam-editor-meta-label">{t('adminExamValues.meta.currentPrice')}</span>
                     <strong>{formatCurrency(exam.current_price)}</strong>
                   </div>
 
                   <label className="exam-editor-price-field">
-                    <span className="exam-editor-meta-label">New Price</span>
+                    <span className="exam-editor-meta-label">{t('adminExamValues.meta.newPrice')}</span>
                     <input
                       className="qty-input"
                       min={0}
@@ -301,10 +309,10 @@ export default function AdminExamValuesSection({
 
                 <div className="row-actions exam-management-actions">
                   <button className="secondary" type="button" onClick={() => void saveExam(exam.id)}>
-                    Save
+                    {t('common.save')}
                   </button>
                   <button className="secondary" type="button" onClick={() => void toggleExamActive(exam.id)}>
-                    {activeDrafts[exam.id] ? 'Disable' : 'Enable'}
+                    {activeDrafts[exam.id] ? t('common.disable') : t('common.enable')}
                   </button>
                 </div>
               </div>

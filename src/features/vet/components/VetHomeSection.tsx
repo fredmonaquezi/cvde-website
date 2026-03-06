@@ -1,4 +1,5 @@
 import type { VetTab } from '../../../types/app'
+import { useI18n } from '../../../i18n'
 
 type VetHomeSectionProps = {
   onNavigate: (tab: VetTab) => void
@@ -6,54 +7,41 @@ type VetHomeSectionProps = {
 
 const HOME_ACTIONS: Array<{
   id: VetTab
-  label: string
-  description: string
-  cta: string
-  tone: string
+  key: string
 }> = [
   {
     id: 'order',
-    label: 'Order a Vet Exam',
-    description: 'Create a new exam request with owner, patient, and selected exam details.',
-    cta: 'Open Order Form',
-    tone: 'Fast intake',
+    key: 'vetHome.actions.order',
   },
   {
     id: 'history',
-    label: 'My Exam History',
-    description: 'Review previous requests, values, and scheduling status updates.',
-    cta: 'View History',
-    tone: 'Past requests',
+    key: 'vetHome.actions.history',
   },
   {
     id: 'prices',
-    label: 'Updated Value Table',
-    description: 'See the current official prices published by CVDE administration.',
-    cta: 'Open Value Table',
-    tone: 'Latest pricing',
+    key: 'vetHome.actions.prices',
   },
   {
     id: 'faq',
-    label: 'Technical Questions',
-    description: 'Access FAQ guidance for exams, values, and platform operations.',
-    cta: 'Open FAQ',
-    tone: 'Quick answers',
+    key: 'vetHome.actions.faq',
   },
 ]
 
 export default function VetHomeSection({ onNavigate }: VetHomeSectionProps) {
+  const { t } = useI18n()
+
   return (
     <section className="section">
       <div className="landing-grid">
         {HOME_ACTIONS.map((action) => (
           <article className="landing-card" key={action.id}>
-            <span className="landing-chip">{action.tone}</span>
+            <span className="landing-chip">{t(`${action.key}.tone`)}</span>
             <div className="landing-card-copy">
-              <h3>{action.label}</h3>
-              <p>{action.description}</p>
+              <h3>{t(`${action.key}.label`)}</h3>
+              <p>{t(`${action.key}.description`)}</p>
             </div>
             <button className="secondary" type="button" onClick={() => onNavigate(action.id)}>
-              {action.cta}
+              {t(`${action.key}.cta`)}
             </button>
           </article>
         ))}

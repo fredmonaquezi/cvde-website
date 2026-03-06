@@ -10,37 +10,10 @@ import VetPricesSection from '../features/vet/components/VetPricesSection'
 import VetProfileSection from '../features/vet/components/VetProfileSection'
 import VetRegistrationGate from '../features/vet/components/VetRegistrationGate'
 import { useVetDashboardData } from '../hooks/useVetDashboardData'
+import { useI18n } from '../i18n'
 import type { Profile, VetTab } from '../types/app'
 import { formatDoctorName } from '../utils/format'
 import { isVetRegistrationComplete } from '../utils/profile'
-
-const VET_TABS: Array<{ id: VetTab; label: string; description: string }> = [
-  {
-    id: 'home',
-    label: 'Overview',
-    description: 'Start from the main action center.',
-  },
-  {
-    id: 'order',
-    label: 'Order Exam',
-    description: 'Create a new request with all exam details.',
-  },
-  {
-    id: 'history',
-    label: 'History',
-    description: 'Track previous requests and status updates.',
-  },
-  {
-    id: 'prices',
-    label: 'Values',
-    description: 'Review the latest active value table.',
-  },
-  {
-    id: 'faq',
-    label: 'FAQ',
-    description: 'Read technical guidance and answers.',
-  },
-]
 
 type VetDashboardProps = {
   profile: Profile
@@ -55,12 +28,40 @@ export default function VetDashboard({
   onSignOut,
   onProfileUpdated,
 }: VetDashboardProps) {
+  const { t } = useI18n()
   const [activeTab, setActiveTab] = useState<VetTab>('home')
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
   const { examCatalog, orders, faqEntries, isLoading, loadError, reload } = useVetDashboardData()
   const toast = useToast()
   const registrationComplete = isVetRegistrationComplete(profile)
+  const vetTabs: Array<{ id: VetTab; label: string; description: string }> = [
+    {
+      id: 'home',
+      label: t('vetDashboard.tab.home.label'),
+      description: t('vetDashboard.tab.home.description'),
+    },
+    {
+      id: 'order',
+      label: t('vetDashboard.tab.order.label'),
+      description: t('vetDashboard.tab.order.description'),
+    },
+    {
+      id: 'history',
+      label: t('vetDashboard.tab.history.label'),
+      description: t('vetDashboard.tab.history.description'),
+    },
+    {
+      id: 'prices',
+      label: t('vetDashboard.tab.prices.label'),
+      description: t('vetDashboard.tab.prices.description'),
+    },
+    {
+      id: 'faq',
+      label: t('vetDashboard.tab.faq.label'),
+      description: t('vetDashboard.tab.faq.description'),
+    },
+  ]
 
   useEffect(() => {
     if (loadError) {
@@ -149,11 +150,9 @@ export default function VetDashboard({
           <div className="shell-header-main">
             {registrationComplete ? (
               <div className="header-copy">
-                <p className="eyebrow">Veterinary workspace</p>
-                <h1 className="header-title">Welcome, {doctorName}</h1>
-                <p className="muted">
-                  Orders, pricing, profile settings, and support are organized below in clear action blocks.
-                </p>
+                <p className="eyebrow">{t('vetDashboard.header.eyebrow')}</p>
+                <h1 className="header-title">{t('vetDashboard.header.welcome', { doctorName })}</h1>
+                <p className="muted">{t('vetDashboard.header.copy')}</p>
               </div>
             ) : null}
           </div>
@@ -167,7 +166,7 @@ export default function VetDashboard({
                 onClick={() => setIsMenuOpen((current) => !current)}
               >
                 <span className="profile-avatar" aria-hidden="true">
-                  {(profile.full_name?.trim().charAt(0) || 'D').toUpperCase()}
+                  {(profile.full_name?.trim().charAt(0) || 'V').toUpperCase()}
                 </span>
                 {doctorName}
                 <span aria-hidden="true" className={isMenuOpen ? 'profile-caret open' : 'profile-caret'}>
@@ -179,11 +178,11 @@ export default function VetDashboard({
                 <div className="header-menu-panel" role="menu">
                   {registrationComplete ? (
                     <button className="menu-item" role="menuitem" type="button" onClick={handleOpenProfile}>
-                      Profile
+                      {t('common.profile')}
                     </button>
                   ) : null}
                   <button className="menu-item" role="menuitem" type="button" onClick={() => void handleSignOut()}>
-                    Sign out
+                    {t('common.signOut')}
                   </button>
                 </div>
               ) : null}
@@ -193,8 +192,8 @@ export default function VetDashboard({
 
         {registrationComplete ? (
           <>
-            <div className="dashboard-nav-grid" role="tablist" aria-label="Veterinary sections">
-              {VET_TABS.map((tab) => (
+            <div className="dashboard-nav-grid" role="tablist" aria-label={t('vetDashboard.nav.aria')}>
+              {vetTabs.map((tab) => (
                 <button
                   className={activeTab === tab.id ? 'nav-tile active' : 'nav-tile'}
                   key={tab.id}
@@ -207,7 +206,7 @@ export default function VetDashboard({
               ))}
             </div>
 
-            {isLoading ? <p className="muted">Loading data...</p> : null}
+            {isLoading ? <p className="muted">{t('common.loadingData')}</p> : null}
 
             {!isLoading ? <section className="content-panel">{renderActiveSection()}</section> : null}
           </>
@@ -215,28 +214,26 @@ export default function VetDashboard({
           <>
             <div className="hero-grid">
               <section className="hero-panel">
-                <p className="eyebrow">One step before access</p>
-                <h1 className="hero-title">Complete your registration</h1>
-                <p className="hero-copy">
-                  Finish your professional profile once so the full ordering workspace becomes available.
-                </p>
+                <p className="eyebrow">{t('vetDashboard.registration.eyebrow')}</p>
+                <h1 className="hero-title">{t('vetDashboard.registration.title')}</h1>
+                <p className="hero-copy">{t('vetDashboard.registration.copy')}</p>
               </section>
 
               <div className="hero-stats">
                 <article className="hero-stat">
-                  <span className="stat-label">Account</span>
-                  <strong>Ready</strong>
-                  <span className="stat-copy">Your login is active</span>
+                  <span className="stat-label">{t('vetDashboard.registration.account.label')}</span>
+                  <strong>{t('vetDashboard.registration.account.value')}</strong>
+                  <span className="stat-copy">{t('vetDashboard.registration.account.copy')}</span>
                 </article>
                 <article className="hero-stat">
-                  <span className="stat-label">Profile</span>
-                  <strong>Pending</strong>
-                  <span className="stat-copy">Professional fields still required</span>
+                  <span className="stat-label">{t('vetDashboard.registration.profile.label')}</span>
+                  <strong>{t('vetDashboard.registration.profile.value')}</strong>
+                  <span className="stat-copy">{t('vetDashboard.registration.profile.copy')}</span>
                 </article>
                 <article className="hero-stat">
-                  <span className="stat-label">Next step</span>
-                  <strong>Now</strong>
-                  <span className="stat-copy">Complete the form below to continue</span>
+                  <span className="stat-label">{t('vetDashboard.registration.nextStep.label')}</span>
+                  <strong>{t('vetDashboard.registration.nextStep.value')}</strong>
+                  <span className="stat-copy">{t('vetDashboard.registration.nextStep.copy')}</span>
                 </article>
               </div>
             </div>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { useToast } from '../../../components/toast/useToast'
+import { useI18n } from '../../../i18n'
 import { updateUserEmail, updateUserPassword, updateVetProfileDetails } from '../../../services/authService'
 import type { Profile, VetProfessionalType } from '../../../types/app'
 import {
@@ -45,6 +46,7 @@ function createProfileFormState(profile: Profile, email: string): ProfileFormSta
 }
 
 export default function VetProfileSection({ profile, session, onProfileUpdated }: VetProfileSectionProps) {
+  const { t } = useI18n()
   const [isSavingProfile, setIsSavingProfile] = useState(false)
   const [isSavingPassword, setIsSavingPassword] = useState(false)
   const [profileForm, setProfileForm] = useState(() => createProfileFormState(profile, session.user.email ?? ''))
@@ -76,22 +78,22 @@ export default function VetProfileSection({ profile, session, onProfileUpdated }
       !trimmedEmail ||
       !profileForm.professionalType
     ) {
-      toast.error('Please fill all required profile fields.')
+      toast.error(t('vetProfile.validation.requiredFields'))
       return
     }
 
     if (toDigitsOnly(trimmedSsn).length !== 11) {
-      toast.error('Social Security Number must have 11 digits.')
+      toast.error(t('vetProfile.validation.cpfLength'))
       return
     }
 
     if (toDigitsOnly(trimmedPhone).length !== 11) {
-      toast.error('Phone Number must have 11 digits.')
+      toast.error(t('vetProfile.validation.phoneLength'))
       return
     }
 
     if (profileForm.professionalType === 'clinic' && (!trimmedClinicName || !isClinicAddressComplete(profileForm.clinicAddress))) {
-      toast.error('Please provide the full clinic address, including street, number, neighborhood, city, and state.')
+      toast.error(t('vetProfile.validation.clinicAddressRequired'))
       return
     }
 
@@ -108,7 +110,7 @@ export default function VetProfileSection({ profile, session, onProfileUpdated }
 
     if (error || !data) {
       setIsSavingProfile(false)
-      toast.error(error ?? 'Failed to update profile.')
+      toast.error(error ?? t('vetProfile.validation.submitError'))
       return
     }
 
@@ -121,17 +123,17 @@ export default function VetProfileSection({ profile, session, onProfileUpdated }
       onProfileUpdated(data)
 
       if (emailUpdate.error) {
-        toast.error(`Profile details were saved, but the email update failed: ${emailUpdate.error}`)
+        toast.error(t('vetProfile.toast.emailUpdateFailed', { error: emailUpdate.error }))
         return
       }
 
-      toast.info('Profile updated. If email confirmation is enabled, confirm the new email from your inbox.')
+      toast.info(t('vetProfile.toast.emailConfirmationInfo'))
       return
     }
 
     setIsSavingProfile(false)
     onProfileUpdated(data)
-    toast.success('Profile updated successfully.')
+    toast.success(t('vetProfile.toast.profileUpdated'))
   }
 
   const updateClinicAddressField = (field: keyof ClinicAddressFields, value: string) => {
@@ -148,12 +150,12 @@ export default function VetProfileSection({ profile, session, onProfileUpdated }
     event.preventDefault()
 
     if (newPassword.length < 6) {
-      toast.error('Password must have at least 6 characters.')
+      toast.error(t('vetProfile.validation.passwordMinLength'))
       return
     }
 
     if (newPassword !== confirmPassword) {
-      toast.error('Password confirmation does not match.')
+      toast.error(t('vetProfile.validation.passwordMismatch'))
       return
     }
 
@@ -168,20 +170,22 @@ export default function VetProfileSection({ profile, session, onProfileUpdated }
 
     setNewPassword('')
     setConfirmPassword('')
-    toast.success('Password updated successfully.')
+    toast.success(t('vetProfile.toast.passwordUpdated'))
   }
 
   return (
     <section className="section profile-layout">
       <article className="profile-panel">
-        <h2>Update Profile</h2>
+        <h2>{t('vetProfile.title')}</h2>
         <form className="form" onSubmit={handleSaveProfile}>
-          <p className="muted small">Fields with <span className="field-required">*</span> are required.</p>
+          <p className="muted small">
+            {t('common.requiredFieldsPrefix')} <span className="field-required">*</span> {t('common.requiredFieldsSuffix')}
+          </p>
 
           <div className="grid two">
             <label>
               <span className="field-label">
-                Full Name <span className="field-required">*</span>
+                {t('common.fields.fullName')} <span className="field-required">*</span>
               </span>
               <input
                 required
@@ -204,7 +208,7 @@ export default function VetProfileSection({ profile, session, onProfileUpdated }
           <div className="grid two">
             <label>
               <span className="field-label">
-                Social Security Number <span className="field-required">*</span>
+                {t('common.fields.cpf')} <span className="field-required">*</span>
               </span>
               <input
                 required
@@ -219,7 +223,7 @@ export default function VetProfileSection({ profile, session, onProfileUpdated }
             </label>
             <label>
               <span className="field-label">
-                Phone Number <span className="field-required">*</span>
+                {t('common.fields.phone')} <span className="field-required">*</span>
               </span>
               <input
                 required
@@ -237,7 +241,7 @@ export default function VetProfileSection({ profile, session, onProfileUpdated }
           <div className="grid two">
             <label>
               <span className="field-label">
-                Email <span className="field-required">*</span>
+                {t('common.fields.email')} <span className="field-required">*</span>
               </span>
               <input
                 required
@@ -248,7 +252,7 @@ export default function VetProfileSection({ profile, session, onProfileUpdated }
             </label>
             <label>
               <span className="field-label">
-                Work Mode <span className="field-required">*</span>
+                {t('common.fields.workMode')} <span className="field-required">*</span>
               </span>
               <select
                 required
@@ -264,9 +268,9 @@ export default function VetProfileSection({ profile, session, onProfileUpdated }
                   }))
                 }}
               >
-                <option value="">Select</option>
-                <option value="clinic">Works at a clinic</option>
-                <option value="independent">Independent professional</option>
+                <option value="">{t('common.select')}</option>
+                <option value="clinic">{t('common.workMode.clinic')}</option>
+                <option value="independent">{t('common.workMode.independent')}</option>
               </select>
             </label>
           </div>
@@ -275,7 +279,7 @@ export default function VetProfileSection({ profile, session, onProfileUpdated }
             <>
               <label>
                 <span className="field-label">
-                  Clinic Name <span className="field-required">*</span>
+                  {t('common.fields.clinicName')} <span className="field-required">*</span>
                 </span>
                 <input
                   required
@@ -287,15 +291,15 @@ export default function VetProfileSection({ profile, session, onProfileUpdated }
               <section className="form-subsection">
                 <div className="form-subsection-header">
                   <div>
-                    <h3>Clinic Address</h3>
-                    <p className="muted small">Keep the clinic location structured so collection and scheduling details stay clear.</p>
+                    <h3>{t('common.fields.clinicAddress')}</h3>
+                    <p className="muted small">{t('vetProfile.clinicAddressHelp')}</p>
                   </div>
                 </div>
 
                 <div className="grid address-grid-line-one">
                   <label>
                     <span className="field-label">
-                      Street Name <span className="field-required">*</span>
+                      {t('common.fields.street')} <span className="field-required">*</span>
                     </span>
                     <input
                       required
@@ -305,7 +309,7 @@ export default function VetProfileSection({ profile, session, onProfileUpdated }
                   </label>
                   <label>
                     <span className="field-label">
-                      Number <span className="field-required">*</span>
+                      {t('common.fields.number')} <span className="field-required">*</span>
                     </span>
                     <input
                       required
@@ -318,7 +322,7 @@ export default function VetProfileSection({ profile, session, onProfileUpdated }
                 <div className="grid address-grid-line-two">
                   <label>
                     <span className="field-label">
-                      Neighborhood <span className="field-required">*</span>
+                      {t('common.fields.neighborhood')} <span className="field-required">*</span>
                     </span>
                     <input
                       required
@@ -328,7 +332,7 @@ export default function VetProfileSection({ profile, session, onProfileUpdated }
                   </label>
                   <label>
                     <span className="field-label">
-                      City <span className="field-required">*</span>
+                      {t('common.fields.city')} <span className="field-required">*</span>
                     </span>
                     <input
                       required
@@ -338,14 +342,14 @@ export default function VetProfileSection({ profile, session, onProfileUpdated }
                   </label>
                   <label>
                     <span className="field-label">
-                      State <span className="field-required">*</span>
+                      {t('common.fields.state')} <span className="field-required">*</span>
                     </span>
                     <select
                       required
                       value={profileForm.clinicAddress.state}
                       onChange={(event) => updateClinicAddressField('state', event.target.value)}
                     >
-                      <option value="">Select a state</option>
+                      <option value="">{t('common.selectState')}</option>
                       {BRAZIL_STATE_OPTIONS.map((stateOption) => (
                         <option key={stateOption.value} value={stateOption.value}>
                           {stateOption.label}
@@ -359,16 +363,16 @@ export default function VetProfileSection({ profile, session, onProfileUpdated }
           ) : null}
 
           <button disabled={isSavingProfile} type="submit">
-            {isSavingProfile ? 'Saving profile...' : 'Save Profile'}
+            {isSavingProfile ? t('vetProfile.submit.savingProfile') : t('vetProfile.submit.saveProfile')}
           </button>
         </form>
       </article>
 
       <article className="profile-panel">
-        <h2>Security</h2>
+        <h2>{t('vetProfile.security.title')}</h2>
         <form className="form" onSubmit={handleChangePassword}>
           <label>
-            New password
+            {t('vetProfile.security.newPassword')}
             <input
               minLength={6}
               required
@@ -378,7 +382,7 @@ export default function VetProfileSection({ profile, session, onProfileUpdated }
             />
           </label>
           <label>
-            Confirm new password
+            {t('vetProfile.security.confirmPassword')}
             <input
               minLength={6}
               required
@@ -388,7 +392,7 @@ export default function VetProfileSection({ profile, session, onProfileUpdated }
             />
           </label>
           <button disabled={isSavingPassword} type="submit">
-            {isSavingPassword ? 'Updating password...' : 'Update Password'}
+            {isSavingPassword ? t('vetProfile.submit.updatingPassword') : t('vetProfile.submit.updatePassword')}
           </button>
         </form>
       </article>

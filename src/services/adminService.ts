@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase'
 import type { ExamCatalogItem, ExamOrder, FaqEntry, OrderStatus, VetProfessionalType } from '../types/app'
 import { parseSelectedExams } from '../utils/format'
+import { mapServiceError, mapServiceLoadError } from './errorMapper'
 import type { ServiceMutationResult, ServiceResult } from './types'
 
 export type AdminDashboardData = {
@@ -76,10 +77,11 @@ export async function fetchAdminDashboardData(): Promise<ServiceResult<AdminDash
     settingsError = null
   }
 
-  if (examError || orderError || faqError || settingsError) {
+  const firstError = examError ?? orderError ?? faqError ?? settingsError
+  if (firstError) {
     return {
       data: null,
-      error: examError?.message ?? orderError?.message ?? faqError?.message ?? settingsError?.message ?? 'Failed to load data.',
+      error: mapServiceLoadError(firstError),
     }
   }
 
@@ -136,7 +138,7 @@ export async function updateOrder(input: UpdateOrderInput): Promise<ServiceMutat
   const { error } = await supabase.from('exam_orders').update(payload).eq('id', input.orderId)
 
   return {
-    error: error?.message ?? null,
+    error: error ? mapServiceError(error) : null,
   }
 }
 
@@ -151,7 +153,7 @@ export async function createExam(input: CreateExamInput): Promise<ServiceMutatio
   })
 
   return {
-    error: error?.message ?? null,
+    error: error ? mapServiceError(error) : null,
   }
 }
 
@@ -169,7 +171,7 @@ export async function updateExamDetails(input: UpdateExamDetailsInput): Promise<
     .eq('id', input.examId)
 
   return {
-    error: error?.message ?? null,
+    error: error ? mapServiceError(error) : null,
   }
 }
 
@@ -183,7 +185,7 @@ export async function toggleExamActive(examId: number, active: boolean): Promise
     .eq('id', examId)
 
   return {
-    error: error?.message ?? null,
+    error: error ? mapServiceError(error) : null,
   }
 }
 
@@ -195,7 +197,7 @@ export async function createFaqEntry(input: CreateFaqInput): Promise<ServiceMuta
   })
 
   return {
-    error: error?.message ?? null,
+    error: error ? mapServiceError(error) : null,
   }
 }
 
@@ -206,7 +208,7 @@ export async function toggleFaqEntryActive(entryId: number, active: boolean): Pr
     .eq('id', entryId)
 
   return {
-    error: error?.message ?? null,
+    error: error ? mapServiceError(error) : null,
   }
 }
 
@@ -223,6 +225,6 @@ export async function updateDriverPhoneSetting(driverPhone: string): Promise<Ser
   )
 
   return {
-    error: error?.message ?? null,
+    error: error ? mapServiceError(error) : null,
   }
 }

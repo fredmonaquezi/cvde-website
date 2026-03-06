@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useToast } from '../../../components/toast/useToast'
 import StatusBadge from '../../../components/StatusBadge'
+import { useI18n } from '../../../i18n'
 import { updateDriverPhoneSetting, updateOrder } from '../../../services/adminService'
 import type { ExamOrder, OrderEdit, OrderStatus } from '../../../types/app'
 import { formatCurrency, formatDateTime, formatInternationalPhone, toDateTimeLocalValue, toDigitsOnly } from '../../../utils/format'
@@ -22,6 +23,8 @@ type CompactCollectionSummary = {
   toneClassName: string
 }
 
+type TranslateFn = (key: string, values?: Record<string, string | number>) => string
+
 function getCollectionDeadlineMs(driverRequestedAt: string | null): number | null {
   if (!driverRequestedAt) {
     return null
@@ -30,8 +33,8 @@ function getCollectionDeadlineMs(driverRequestedAt: string | null): number | nul
   return new Date(driverRequestedAt).getTime() + 60 * 60 * 1000
 }
 
-function formatMinutesLabel(minutes: number): string {
-  return `${minutes} minute${minutes === 1 ? '' : 's'}`
+function formatMinutesLabel(minutes: number, t: TranslateFn): string {
+  return t('adminOrders.collection.minutesLabel', { minutes })
 }
 
 function getCollectionTrackingState(
@@ -40,11 +43,12 @@ function getCollectionTrackingState(
   driverRequestedAt: string | null,
   sampleReceivedAt: string | null,
   nowMs: number,
+  t: TranslateFn,
 ): CollectionTrackingState {
   if (!requestCollection) {
     return {
       bannerClassName: 'collection-banner collection-banner-none',
-      bannerText: 'No collection requested for this order.',
+      bannerText: t('adminOrders.collection.banner.none'),
       isOverdue: false,
     }
   }
@@ -52,7 +56,7 @@ function getCollectionTrackingState(
   if (!driverCollectionRequested || !driverRequestedAt) {
     return {
       bannerClassName: 'collection-banner collection-banner-requested',
-      bannerText: 'Collection requested by vet. Driver still needs to be contacted.',
+      bannerText: t('adminOrders.collection.banner.requested'),
       isOverdue: false,
     }
   }
@@ -61,7 +65,7 @@ function getCollectionTrackingState(
   if (!deadlineMs) {
     return {
       bannerClassName: 'collection-banner collection-banner-requested',
-      bannerText: 'Collection requested by vet. Driver still needs to be contacted.',
+      bannerText: t('adminOrders.collection.banner.requested'),
       isOverdue: false,
     }
   }
@@ -75,15 +79,15 @@ function getCollectionTrackingState(
         bannerClassName: 'collection-banner collection-banner-complete',
         bannerText:
           deltaMinutes === 0
-            ? 'Sample received at clinic within the 1-hour target.'
-            : `Sample received at clinic with ${formatMinutesLabel(deltaMinutes)} remaining.`,
+            ? t('adminOrders.collection.banner.receivedOnTime')
+            : t('adminOrders.collection.banner.receivedWithTimeLeft', { timeLeft: formatMinutesLabel(deltaMinutes, t) }),
         isOverdue: false,
       }
     }
 
     return {
       bannerClassName: 'collection-banner collection-banner-overdue',
-      bannerText: `Sample received late, ${formatMinutesLabel(deltaMinutes)} after the 1-hour target.`,
+      bannerText: t('adminOrders.collection.banner.receivedLate', { delay: formatMinutesLabel(deltaMinutes, t) }),
       isOverdue: false,
     }
   }
@@ -93,7 +97,7 @@ function getCollectionTrackingState(
     const remainingMinutes = Math.max(1, Math.ceil(remainingMs / 60000))
     return {
       bannerClassName: 'collection-banner collection-banner-pending',
-      bannerText: `Driver contacted. ${formatMinutesLabel(remainingMinutes)} remaining to receive the sample.`,
+      bannerText: t('adminOrders.collection.banner.pending', { remaining: formatMinutesLabel(remainingMinutes, t) }),
       isOverdue: false,
     }
   }
@@ -101,7 +105,7 @@ function getCollectionTrackingState(
   const overdueMinutes = Math.max(1, Math.ceil(Math.abs(remainingMs) / 60000))
   return {
     bannerClassName: 'collection-banner collection-banner-overdue',
-    bannerText: `Collection overdue by ${formatMinutesLabel(overdueMinutes)}. Contact the driver again.`,
+    bannerText: t('adminOrders.collection.banner.overdue', { delay: formatMinutesLabel(overdueMinutes, t) }),
     isOverdue: true,
   }
 }
@@ -111,97 +115,101 @@ function getCompactCollectionSummary(
   driverCollectionRequested: boolean,
   sampleReceivedAt: string | null,
   isOverdue: boolean,
+  t: TranslateFn,
 ): CompactCollectionSummary {
   if (!requestCollection) {
     return {
-      label: 'No collection',
+      label: t('adminOrders.collection.summary.none'),
       toneClassName: 'is-neutral',
     }
   }
 
   if (sampleReceivedAt) {
     return {
-      label: 'Sample received',
+      label: t('adminOrders.collection.summary.received'),
       toneClassName: 'is-success',
     }
   }
 
   if (isOverdue) {
     return {
-      label: 'Collection overdue',
+      label: t('adminOrders.collection.summary.overdue'),
       toneClassName: 'is-danger',
     }
   }
 
   if (driverCollectionRequested) {
     return {
-      label: 'Driver contacted',
+      label: t('adminOrders.collection.summary.driverContacted'),
       toneClassName: 'is-info',
     }
   }
 
   return {
-    label: 'Awaiting driver',
+    label: t('adminOrders.collection.summary.awaitingDriver'),
     toneClassName: 'is-warning',
   }
 }
 
-function buildDriverWhatsAppMessage(order: ExamOrder): string {
+function buildDriverWhatsAppMessage(order: ExamOrder, t: TranslateFn): string {
   const examList = order.selected_exams.map((exam) => exam.exam_name).join(', ')
   const clinicName =
     order.vet_clinic_name?.trim() ||
-    (order.vet_professional_type === 'independent' ? 'Independent Professional' : 'Clinic not informed')
+    (order.vet_professional_type === 'independent'
+      ? t('adminOrders.fallback.independentProfessional')
+      : t('adminOrders.fallback.clinicNotInformed'))
   const clinicAddress = order.vet_clinic_address?.trim()
   const patientInfo = [
     order.patient_name,
-    order.species ? `Species: ${order.species}` : null,
-    order.breed ? `Breed: ${order.breed}` : null,
-    order.age_years !== null ? `Age: ${order.age_years}` : null,
+    order.species ? t('adminOrders.whatsapp.species', { species: order.species }) : null,
+    order.breed ? t('adminOrders.whatsapp.breed', { breed: order.breed }) : null,
+    order.age_years !== null ? t('adminOrders.whatsapp.age', { age: order.age_years }) : null,
   ]
     .filter(Boolean)
     .join(' | ')
 
   return [
-    `CVDE Collection Request - Order #${order.id}`,
+    t('adminOrders.whatsapp.collectionTitle', { orderId: order.id }),
     `*${clinicName.toUpperCase()}*`,
-    clinicAddress ? `Address: ${clinicAddress}` : null,
+    clinicAddress ? t('adminOrders.whatsapp.address', { address: clinicAddress }) : null,
     '',
-    `Vet: ${order.vet_name_snapshot ?? 'Not informed'}`,
-    `Vet email: ${order.vet_email_snapshot ?? 'Not informed'}`,
-    `Owner: ${order.owner_name}`,
-    `Owner phone: ${order.owner_phone ?? 'Not informed'}`,
-    `Patient: ${patientInfo}`,
-    `Exams: ${examList || 'Not informed'}`,
+    t('adminOrders.whatsapp.vet', { vet: order.vet_name_snapshot ?? t('common.notInformed') }),
+    t('adminOrders.whatsapp.vetEmail', { email: order.vet_email_snapshot ?? t('common.notInformed') }),
+    t('adminOrders.whatsapp.owner', { owner: order.owner_name }),
+    t('adminOrders.whatsapp.ownerPhone', { phone: order.owner_phone ?? t('common.notInformed') }),
+    t('adminOrders.whatsapp.patient', { patient: patientInfo }),
+    t('adminOrders.whatsapp.exams', { exams: examList || t('common.notInformed') }),
     '',
-    `Please collect the sample at the requesting clinic.`,
+    t('adminOrders.whatsapp.collectionInstruction'),
   ]
     .filter((line): line is string => line !== null)
     .join('\n')
 }
 
-function buildDriverReminderWhatsAppMessage(order: ExamOrder): string {
+function buildDriverReminderWhatsAppMessage(order: ExamOrder, t: TranslateFn): string {
   return [
-    `CVDE Reminder - Order #${order.id}`,
-    `This collection is overdue.`,
-    `Patient: ${order.patient_name}`,
-    `Owner: ${order.owner_name}`,
-    `Please send an update and prioritize delivery to the clinic.`,
+    t('adminOrders.whatsapp.reminderTitle', { orderId: order.id }),
+    t('adminOrders.whatsapp.reminderOverdue'),
+    t('adminOrders.whatsapp.patient', { patient: order.patient_name }),
+    t('adminOrders.whatsapp.owner', { owner: order.owner_name }),
+    t('adminOrders.whatsapp.reminderInstruction'),
   ].join('\n')
 }
 
-function buildDriverWhatsAppUrl(driverPhone: string, order: ExamOrder): string {
+function buildDriverWhatsAppUrl(driverPhone: string, order: ExamOrder, t: TranslateFn): string {
   const digits = toDigitsOnly(driverPhone)
-  const message = buildDriverWhatsAppMessage(order)
+  const message = buildDriverWhatsAppMessage(order, t)
   return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`
 }
 
-function buildDriverReminderWhatsAppUrl(driverPhone: string, order: ExamOrder): string {
+function buildDriverReminderWhatsAppUrl(driverPhone: string, order: ExamOrder, t: TranslateFn): string {
   const digits = toDigitsOnly(driverPhone)
-  const message = buildDriverReminderWhatsAppMessage(order)
+  const message = buildDriverReminderWhatsAppMessage(order, t)
   return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`
 }
 
 export default function AdminOrdersSection({ driverPhone, orders, onDataChanged }: AdminOrdersSectionProps) {
+  const { t } = useI18n()
   const [orderEdits, setOrderEdits] = useState<Record<number, OrderEdit>>({})
   const [driverPhoneInput, setDriverPhoneInput] = useState(formatInternationalPhone(driverPhone ?? ''))
   const [isDriverSettingsOpen, setIsDriverSettingsOpen] = useState(false)
@@ -255,13 +263,13 @@ export default function AdminOrdersSection({ driverPhone, orders, onDataChanged 
       return
     }
 
-    toast.success('Order updated.')
+    toast.success(t('adminOrders.toast.orderUpdated'))
     await onDataChanged()
   }
 
   const saveDriverPhone = async () => {
     if (toDigitsOnly(driverPhoneInput).length !== 13) {
-      toast.error('Driver phone must have 13 digits in the format +00 (00) 00000-0000.')
+      toast.error(t('adminOrders.driver.validation.phoneLength'))
       return
     }
 
@@ -274,7 +282,7 @@ export default function AdminOrdersSection({ driverPhone, orders, onDataChanged 
       return
     }
 
-    toast.success('Driver phone saved.')
+    toast.success(t('adminOrders.driver.toast.saved'))
     await onDataChanged()
   }
 
@@ -347,7 +355,7 @@ export default function AdminOrdersSection({ driverPhone, orders, onDataChanged 
       return
     }
 
-    toast.success(checked ? 'Driver request saved.' : 'Driver request cleared.')
+    toast.success(checked ? t('adminOrders.collection.toast.requestSaved') : t('adminOrders.collection.toast.requestCleared'))
   }
 
   const handleMarkSampleReceived = async (order: ExamOrder) => {
@@ -370,12 +378,12 @@ export default function AdminOrdersSection({ driverPhone, orders, onDataChanged 
       return
     }
 
-    toast.success('Sample receipt saved.')
+    toast.success(t('adminOrders.collection.toast.sampleSaved'))
   }
 
   return (
     <section className="section">
-      <h2>All Exam Orders</h2>
+      <h2>{t('adminOrders.title')}</h2>
       <div className="driver-settings-wrap">
         <button
           aria-expanded={isDriverSettingsOpen}
@@ -384,9 +392,11 @@ export default function AdminOrdersSection({ driverPhone, orders, onDataChanged 
           onClick={() => setIsDriverSettingsOpen((current) => !current)}
         >
           <span className="driver-settings-toggle-copy">
-            <span className="driver-settings-toggle-title">Driver Settings</span>
+            <span className="driver-settings-toggle-title">{t('adminOrders.driver.title')}</span>
             <span className="driver-settings-toggle-subtitle">
-              {driverPhone ? `Current driver: ${formatInternationalPhone(driverPhone)}` : 'No driver phone saved yet'}
+              {driverPhone
+                ? t('adminOrders.driver.currentDriver', { phone: formatInternationalPhone(driverPhone) })
+                : t('adminOrders.driver.notSaved')}
             </span>
           </span>
           <span aria-hidden="true" className="driver-settings-toggle-caret">
@@ -396,11 +406,11 @@ export default function AdminOrdersSection({ driverPhone, orders, onDataChanged 
 
         {isDriverSettingsOpen ? (
           <section className="driver-settings-card driver-settings-panel">
-            <h3>Driver Settings</h3>
-            <p className="muted small">Save the driver WhatsApp number once. This will be used for all collection requests.</p>
+            <h3>{t('adminOrders.driver.title')}</h3>
+            <p className="muted small">{t('adminOrders.driver.copy')}</p>
             <div className="driver-settings-row">
               <label>
-                Driver Phone Number
+                {t('adminOrders.driver.phoneLabel')}
                 <input
                   inputMode="numeric"
                   maxLength={19}
@@ -410,22 +420,24 @@ export default function AdminOrdersSection({ driverPhone, orders, onDataChanged 
                 />
               </label>
               <button type="button" onClick={() => void saveDriverPhone()} disabled={isSavingDriverPhone}>
-                {isSavingDriverPhone ? 'Saving...' : 'Save Driver Phone'}
+                {isSavingDriverPhone ? t('common.saving') : t('adminOrders.driver.saveButton')}
               </button>
             </div>
           </section>
         ) : null}
       </div>
 
-      {activeOrders.length === 0 ? <p>No active orders right now. Completed orders are available in History.</p> : null}
+      {activeOrders.length === 0 ? <p>{t('adminOrders.empty')}</p> : null}
 
       <div className="order-list">
         {activeOrders.map((order) => {
           const edit = orderEdits[order.id]
           const isSavingCollection = collectionSavingByOrder[order.id] ?? false
           const isExpanded = expandedOrders[order.id] ?? false
-          const neuterLabel = order.neuter_status ? order.neuter_status.replace('_', ' ') : 'not provided'
-          const reactiveLabel = order.reactive_status ? order.reactive_status.replace('_', ' ') : 'not provided'
+          const neuterLabel = order.neuter_status ? t(`adminOrders.neuter.${order.neuter_status}`) : t('common.notProvided')
+          const reactiveLabel = order.reactive_status
+            ? t(`adminOrders.reactive.${order.reactive_status}`)
+            : t('common.notProvided')
           const isDriverCollectionRequested = edit?.driver_collection_requested ?? order.driver_collection_requested
           const driverRequestedAt = edit?.driver_requested_at ?? order.driver_requested_at
           const sampleReceivedAt = edit?.sample_received_at ?? order.sample_received_at
@@ -435,12 +447,14 @@ export default function AdminOrdersSection({ driverPhone, orders, onDataChanged 
             driverRequestedAt,
             sampleReceivedAt,
             nowMs,
+            t,
           )
           const compactCollectionSummary = getCompactCollectionSummary(
             order.request_collection,
             isDriverCollectionRequested,
             sampleReceivedAt,
             collectionState.isOverdue,
+            t,
           )
 
           return (
@@ -453,7 +467,7 @@ export default function AdminOrdersSection({ driverPhone, orders, onDataChanged 
               >
                 <span className="order-card-toggle-copy">
                   <span className="order-card-head">
-                    <span className="order-card-title">Order #{order.id}</span>
+                    <span className="order-card-title">{t('adminOrders.orderTitle', { orderId: order.id })}</span>
                     <StatusBadge status={order.status} />
                   </span>
                   <span className="order-card-summary">
@@ -464,7 +478,7 @@ export default function AdminOrdersSection({ driverPhone, orders, onDataChanged 
                       {compactCollectionSummary.label}
                     </span>
                     <span className="order-summary-chip is-neutral">
-                      {order.selected_exams.length} {order.selected_exams.length === 1 ? 'exam' : 'exams'}
+                      {t('adminOrders.summary.examCount', { count: order.selected_exams.length })}
                     </span>
                     <span className="order-summary-chip is-neutral">{formatCurrency(order.total_value)}</span>
                   </span>
@@ -481,57 +495,62 @@ export default function AdminOrdersSection({ driverPhone, orders, onDataChanged 
                   </div>
 
                   <p className="small muted">
-                    Created: {formatDateTime(order.created_at)} | Vet: {order.vet_name_snapshot ?? 'Unknown'} ({order.vet_email_snapshot ?? '-'})
+                    {t('adminOrders.details.created')}: {formatDateTime(order.created_at)} | {t('adminOrders.details.vet')}:{' '}
+                    {order.vet_name_snapshot ?? t('adminHistory.fallback.unknownVet')} ({order.vet_email_snapshot ?? '-'})
                   </p>
 
                   <p>
-                    <strong>CRMV:</strong> {order.vet_crmv_snapshot ?? '-'}
+                    <strong>{t('adminOrders.details.crmv')}:</strong> {order.vet_crmv_snapshot ?? '-'}
                   </p>
 
                   <p>
-                    <strong>Clinic:</strong>{' '}
+                    <strong>{t('adminOrders.details.clinic')}:</strong>{' '}
                     {order.vet_clinic_name ??
-                      (order.vet_professional_type === 'independent' ? 'Independent Professional' : 'Clinic not informed')}
+                      (order.vet_professional_type === 'independent'
+                        ? t('adminOrders.fallback.independentProfessional')
+                        : t('adminOrders.fallback.clinicNotInformed'))}
                   </p>
 
                   <p>
-                    <strong>Clinic address:</strong> {order.vet_clinic_address ?? '-'}
+                    <strong>{t('adminOrders.details.clinicAddress')}:</strong> {order.vet_clinic_address ?? '-'}
                   </p>
 
                   <p>
-                    <strong>Patient:</strong> {order.patient_name}
+                    <strong>{t('adminOrders.details.patient')}:</strong> {order.patient_name}
                     {order.species ? ` (${order.species})` : ''}
                     {order.breed ? `, ${order.breed}` : ''}
-                    {order.age_years !== null ? `, ${order.age_years}y` : ''}
+                    {order.age_years !== null ? `, ${order.age_years}${t('adminOrders.details.yearsSuffix')}` : ''}
                     {order.weight_kg !== null ? `, ${order.weight_kg}kg` : ''}
                   </p>
 
                   <p>
-                    <strong>Neutered:</strong> {neuterLabel} | <strong>Reactive:</strong> {reactiveLabel}
+                    <strong>{t('adminOrders.details.neutered')}:</strong> {neuterLabel} | <strong>{t('adminOrders.details.reactive')}:</strong>{' '}
+                    {reactiveLabel}
                   </p>
 
                   <p>
-                    <strong>Owner:</strong> {order.owner_name} | <strong>SSN:</strong> {order.owner_ssn ?? '-'} | <strong>Phone:</strong>{' '}
-                    {order.owner_phone ?? '-'}
+                    <strong>{t('adminOrders.details.owner')}:</strong> {order.owner_name} | <strong>{t('adminOrders.details.cpf')}:</strong>{' '}
+                    {order.owner_ssn ?? '-'} | <strong>{t('adminOrders.details.phone')}:</strong> {order.owner_phone ?? '-'}
                   </p>
 
                   <p>
-                    <strong>Address:</strong> {order.owner_address ?? '-'}
+                    <strong>{t('adminOrders.details.address')}:</strong> {order.owner_address ?? '-'}
                   </p>
 
                   <p>
-                    <strong>Request collection:</strong> {order.request_collection ? 'Yes' : 'No'}
+                    <strong>{t('adminOrders.details.requestCollection')}:</strong>{' '}
+                    {order.request_collection ? t('common.yes') : t('common.no')}
                   </p>
 
                   {driverRequestedAt ? (
                     <p>
-                      <strong>Driver requested at:</strong> {formatDateTime(driverRequestedAt)}
+                      <strong>{t('adminOrders.details.driverRequestedAt')}:</strong> {formatDateTime(driverRequestedAt)}
                     </p>
                   ) : null}
 
                   {sampleReceivedAt ? (
                     <p>
-                      <strong>Sample received at clinic:</strong> {formatDateTime(sampleReceivedAt)}
+                      <strong>{t('adminOrders.details.sampleReceivedAt')}:</strong> {formatDateTime(sampleReceivedAt)}
                     </p>
                   ) : null}
 
@@ -545,7 +564,9 @@ export default function AdminOrdersSection({ driverPhone, orders, onDataChanged 
                           onChange={(event) => void handleDriverCollectionToggle(order, event.target.checked)}
                         />
                         <span className="field-label">
-                          {isSavingCollection ? 'Saving collection status...' : 'Requested the driver to collect'}
+                          {isSavingCollection
+                            ? t('adminOrders.collection.savingStatus')
+                            : t('adminOrders.collection.requestedDriverToggle')}
                         </span>
                       </label>
 
@@ -553,15 +574,15 @@ export default function AdminOrdersSection({ driverPhone, orders, onDataChanged 
                         {hasValidDriverPhone ? (
                           <a
                             className="button-link"
-                            href={buildDriverWhatsAppUrl(normalizedDriverPhone, order)}
+                            href={buildDriverWhatsAppUrl(normalizedDriverPhone, order, t)}
                             rel="noreferrer"
                             target="_blank"
                           >
-                            Open WhatsApp for Driver
+                            {t('adminOrders.collection.openDriverWhatsapp')}
                           </a>
                         ) : (
                           <button className="secondary" disabled type="button">
-                            Save driver phone to enable WhatsApp
+                            {t('adminOrders.collection.saveDriverPhoneFirst')}
                           </button>
                         )}
 
@@ -572,18 +593,18 @@ export default function AdminOrdersSection({ driverPhone, orders, onDataChanged 
                             type="button"
                             onClick={() => void handleMarkSampleReceived(order)}
                           >
-                            {isSavingCollection ? 'Saving...' : 'Mark Sample Received at Clinic'}
+                            {isSavingCollection ? t('common.saving') : t('adminOrders.collection.markSampleReceived')}
                           </button>
                         ) : null}
 
                         {collectionState.isOverdue && hasValidDriverPhone ? (
                           <a
                             className="button-link warning"
-                            href={buildDriverReminderWhatsAppUrl(normalizedDriverPhone, order)}
+                            href={buildDriverReminderWhatsAppUrl(normalizedDriverPhone, order, t)}
                             rel="noreferrer"
                             target="_blank"
                           >
-                            Open WhatsApp Reminder
+                            {t('adminOrders.collection.openReminderWhatsapp')}
                           </a>
                         ) : null}
                       </div>
@@ -591,16 +612,16 @@ export default function AdminOrdersSection({ driverPhone, orders, onDataChanged 
                   ) : null}
 
                   <p>
-                    <strong>Exams:</strong> {order.selected_exams.map((exam) => exam.exam_name).join(', ')}
+                    <strong>{t('adminOrders.details.exams')}:</strong> {order.selected_exams.map((exam) => exam.exam_name).join(', ')}
                   </p>
 
                   <p>
-                    <strong>Total:</strong> {formatCurrency(order.total_value)}
+                    <strong>{t('adminOrders.details.total')}:</strong> {formatCurrency(order.total_value)}
                   </p>
 
                   <div className="grid two">
                     <label>
-                      Status
+                      {t('adminOrders.form.status')}
                       <select
                         value={edit?.status ?? order.status}
                         onChange={(event) =>
@@ -617,16 +638,16 @@ export default function AdminOrdersSection({ driverPhone, orders, onDataChanged 
                           }))
                         }
                       >
-                        <option value="requested">requested</option>
-                        <option value="scheduled">scheduled</option>
-                        <option value="in_progress">in progress</option>
-                        <option value="completed">completed</option>
-                        <option value="cancelled">cancelled</option>
+                        <option value="requested">{t('status.requested')}</option>
+                        <option value="scheduled">{t('status.scheduled')}</option>
+                        <option value="in_progress">{t('status.in_progress')}</option>
+                        <option value="completed">{t('status.completed')}</option>
+                        <option value="cancelled">{t('status.cancelled')}</option>
                       </select>
                     </label>
 
                     <label>
-                      Admin notes
+                      {t('adminOrders.form.adminNotes')}
                       <input
                         value={edit?.admin_notes ?? order.admin_notes ?? ''}
                         onChange={(event) =>
@@ -647,7 +668,7 @@ export default function AdminOrdersSection({ driverPhone, orders, onDataChanged 
                   </div>
 
                   <button className="secondary" type="button" onClick={() => void saveOrder(order.id)}>
-                    Save Order Update
+                    {t('adminOrders.form.saveOrder')}
                   </button>
                 </>
               ) : null}

@@ -1,4 +1,5 @@
 import logo from '../../../assets/logo.png'
+import { useI18n } from '../../../i18n'
 
 function AddressIcon() {
   return (
@@ -56,10 +57,12 @@ function ClockIcon() {
 }
 
 export default function VetContactSection() {
+  const { t } = useI18n()
+
   return (
     <section className="contact-showcase">
       <div className="contact-brand">
-        <img alt="CVDE logo" className="contact-logo-image" src={logo} />
+        <img alt={t('vetContact.logoAlt')} className="contact-logo-image" src={logo} />
       </div>
 
       <div aria-hidden="true" className="contact-divider" />
@@ -71,10 +74,10 @@ export default function VetContactSection() {
           </span>
           <div className="contact-copy">
             <h3>
-              <span className="contact-title-inline">Endereço</span>
+              <span className="contact-title-inline">{t('vetContact.addressTitle')}</span>
             </h3>
-            <p>Rua José da Costa Paiva, 82, Jd. Guanabara</p>
-            <p>Pouso Alegre - MG</p>
+            <p>{t('vetContact.addressLine1')}</p>
+            <p>{t('vetContact.addressLine2')}</p>
           </div>
         </article>
 
@@ -84,10 +87,10 @@ export default function VetContactSection() {
           </span>
           <div className="contact-copy">
             <h3>
-              <span className="contact-title-inline">Telefones</span>
+              <span className="contact-title-inline">{t('vetContact.phoneTitle')}</span>
             </h3>
-            <p>35 98816-0750</p>
-            <p>35 3647 - 7354</p>
+            <p>{t('vetContact.phoneLine1')}</p>
+            <p>{t('vetContact.phoneLine2')}</p>
           </div>
         </article>
 
@@ -97,10 +100,10 @@ export default function VetContactSection() {
           </span>
           <div className="contact-copy">
             <h3>
-              <span className="contact-title-inline">Horarios de Atendimento</span>
+              <span className="contact-title-inline">{t('vetContact.hoursTitle')}</span>
             </h3>
-            <p>De Segunda a Sexta: das 8h30 as 18h</p>
-            <p>Sabados: das 8h30 as 12h</p>
+            <p>{t('vetContact.hoursLine1')}</p>
+            <p>{t('vetContact.hoursLine2')}</p>
           </div>
         </article>
       </div>

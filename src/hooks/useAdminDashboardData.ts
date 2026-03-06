@@ -18,7 +18,7 @@ export function useAdminDashboardData() {
 
     const { data, error } = await fetchAdminDashboardData()
     if (error || !data) {
-      setLoadError(error ?? 'Failed to load data.')
+      setLoadError(error ?? 'Não foi possível carregar os dados. Tente novamente.')
       if (showLoading) {
         setIsLoading(false)
       }

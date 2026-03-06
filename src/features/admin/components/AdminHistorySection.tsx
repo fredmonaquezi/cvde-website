@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useI18n } from '../../../i18n'
 import type { ExamOrder } from '../../../types/app'
 import { formatCurrency, formatDateTime } from '../../../utils/format'
 
@@ -27,24 +28,6 @@ type ExportOrderRow = {
   total_value: number
 }
 
-const RANGE_LABELS: Record<HistoryRange, string> = {
-  '3d': 'Last 3 days',
-  '7d': 'Last 7 days',
-  '30d': 'Last 30 days',
-  '90d': 'Last 90 days',
-  '365d': 'Last 12 months',
-  all: 'All time',
-}
-
-const EXPORT_RANGE_LABELS: Record<HistoryRange, string> = {
-  '3d': 'Últimos 3 dias',
-  '7d': 'Últimos 7 dias',
-  '30d': 'Últimos 30 dias',
-  '90d': 'Últimos 90 dias',
-  '365d': 'Últimos 12 meses',
-  all: 'Todo o período',
-}
-
 function escapeCsvValue(value: string | number): string {
   const normalized = String(value)
   const escaped = normalized.replace(/"/g, '""')
@@ -68,7 +51,7 @@ function formatExportCurrency(value: number): string {
 
 function buildCsvContent(rows: ExportOrderRow[], periodLabel: string): string {
   const headerRows = [
-    [`CVDE Relatório do "${periodLabel}"`],
+    [`CVDE ${periodLabel}`],
     [],
     ['ID', 'Data', 'Clínica Veterinária', 'Nome do Veterinário', 'Exames', 'Valor'],
   ]
@@ -130,10 +113,19 @@ function getRangeStart(range: HistoryRange): number | null {
 }
 
 export default function AdminHistorySection({ orders }: AdminHistorySectionProps) {
+  const { t } = useI18n()
   const [range, setRange] = useState<HistoryRange>('3d')
   const [vetFilter, setVetFilter] = useState('all')
   const [clinicFilter, setClinicFilter] = useState('all')
   const [examFilter, setExamFilter] = useState('all')
+  const rangeLabels: Record<HistoryRange, string> = {
+    '3d': t('adminHistory.range.3d'),
+    '7d': t('adminHistory.range.7d'),
+    '30d': t('adminHistory.range.30d'),
+    '90d': t('adminHistory.range.90d'),
+    '365d': t('adminHistory.range.365d'),
+    all: t('adminHistory.range.all'),
+  }
 
   const allRows = useMemo<HistoryRow[]>(
     () =>
@@ -144,15 +136,17 @@ export default function AdminHistorySection({ orders }: AdminHistorySectionProps
             order_id: order.id,
             exam_name: exam.exam_name,
             exam_value: exam.unit_price,
-            vet_name: order.vet_name_snapshot ?? 'Unknown',
+            vet_name: order.vet_name_snapshot ?? t('adminHistory.fallback.unknownVet'),
             clinic_name:
               order.vet_clinic_name ??
-              (order.vet_professional_type === 'independent' ? 'Independent Professional' : 'Clinic not informed'),
+              (order.vet_professional_type === 'independent'
+                ? t('adminHistory.fallback.independent')
+                : t('adminHistory.fallback.clinicNotInformed')),
             created_at: order.created_at,
           })),
         )
         .sort((left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime()),
-    [orders],
+    [orders, t],
   )
 
   const vetOptions = useMemo(
@@ -209,14 +203,14 @@ export default function AdminHistorySection({ orders }: AdminHistorySectionProps
         order_id: order.id,
         created_at: order.created_at,
         clinic_name: order.vet_clinic_name ?? '',
-        vet_name: order.vet_name_snapshot ?? 'Unknown',
+        vet_name: order.vet_name_snapshot ?? t('adminHistory.fallback.unknownVet'),
         exams_cell: order.selected_exams.map((exam) => exam.exam_name).join('\n'),
         total_value: order.total_value,
       }))
-  }, [filteredRows, orders])
+  }, [filteredRows, orders, t])
 
   const handleExportCsv = () => {
-    const csvContent = buildCsvContent(exportRows, EXPORT_RANGE_LABELS[range])
+    const csvContent = buildCsvContent(exportRows, rangeLabels[range])
 
     downloadCsvFile(buildExportFileName(), csvContent)
   }
@@ -225,44 +219,42 @@ export default function AdminHistorySection({ orders }: AdminHistorySectionProps
     <section className="section">
       <div className="history-header">
         <div>
-          <h2>Exam History</h2>
-          <p className="muted small">
-            Review exam activity by period, veterinarian, clinic, and exam type, then export the filtered results.
-          </p>
+          <h2>{t('adminHistory.title')}</h2>
+          <p className="muted small">{t('adminHistory.subtitle')}</p>
         </div>
         <button type="button" onClick={handleExportCsv} disabled={exportRows.length === 0}>
-          Export Filtered CSV
+          {t('adminHistory.exportButton')}
         </button>
       </div>
 
       <section className="history-filter-panel">
         <div className="history-filter-heading">
           <div>
-            <p className="eyebrow">Filters</p>
-            <h3>Refine the report</h3>
+            <p className="eyebrow">{t('adminHistory.filters.eyebrow')}</p>
+            <h3>{t('adminHistory.filters.title')}</h3>
           </div>
           <p className="muted small">
-            Showing results for <strong>{RANGE_LABELS[range]}</strong>.
+            {t('adminHistory.filters.showingRange')} <strong>{rangeLabels[range]}</strong>.
           </p>
         </div>
 
         <div className="history-filters">
           <label>
-            Time range
+            {t('adminHistory.filters.timeRange')}
             <select value={range} onChange={(event) => setRange(event.target.value as HistoryRange)}>
-              <option value="3d">Last 3 days</option>
-              <option value="7d">Last 7 days</option>
-              <option value="30d">Last 30 days</option>
-              <option value="90d">Last 90 days</option>
-              <option value="365d">Last 12 months</option>
-              <option value="all">All time</option>
+              <option value="3d">{t('adminHistory.range.3d')}</option>
+              <option value="7d">{t('adminHistory.range.7d')}</option>
+              <option value="30d">{t('adminHistory.range.30d')}</option>
+              <option value="90d">{t('adminHistory.range.90d')}</option>
+              <option value="365d">{t('adminHistory.range.365d')}</option>
+              <option value="all">{t('adminHistory.range.all')}</option>
             </select>
           </label>
 
           <label>
-            Vet
+            {t('adminHistory.filters.vet')}
             <select value={vetFilter} onChange={(event) => setVetFilter(event.target.value)}>
-              <option value="all">All vets</option>
+              <option value="all">{t('adminHistory.filters.allVets')}</option>
               {vetOptions.map((option) => (
                 <option key={option} value={option}>
                   {option}
@@ -272,9 +264,9 @@ export default function AdminHistorySection({ orders }: AdminHistorySectionProps
           </label>
 
           <label>
-            Clinic
+            {t('adminHistory.filters.clinic')}
             <select value={clinicFilter} onChange={(event) => setClinicFilter(event.target.value)}>
-              <option value="all">All clinics</option>
+              <option value="all">{t('adminHistory.filters.allClinics')}</option>
               {clinicOptions.map((option) => (
                 <option key={option} value={option}>
                   {option}
@@ -284,9 +276,9 @@ export default function AdminHistorySection({ orders }: AdminHistorySectionProps
           </label>
 
           <label>
-            Exam type
+            {t('adminHistory.filters.examType')}
             <select value={examFilter} onChange={(event) => setExamFilter(event.target.value)}>
-              <option value="all">All exams</option>
+              <option value="all">{t('adminHistory.filters.allExams')}</option>
               {examOptions.map((option) => (
                 <option key={option} value={option}>
                   {option}
@@ -299,19 +291,19 @@ export default function AdminHistorySection({ orders }: AdminHistorySectionProps
 
       <div className="history-summary-grid">
         <article className="summary-card history-metric-card">
-          <p className="history-metric-label">Exam items</p>
+          <p className="history-metric-label">{t('adminHistory.metrics.items.label')}</p>
           <h3 className="history-metric-value">{filteredRows.length}</h3>
-          <p className="muted small">Entries matching the current filters</p>
+          <p className="muted small">{t('adminHistory.metrics.items.copy')}</p>
         </article>
         <article className="summary-card history-metric-card">
-          <p className="history-metric-label">Filtered value</p>
+          <p className="history-metric-label">{t('adminHistory.metrics.value.label')}</p>
           <h3 className="history-metric-value">{formatCurrency(totalValue)}</h3>
-          <p className="muted small">Total value for visible exam items</p>
+          <p className="muted small">{t('adminHistory.metrics.value.copy')}</p>
         </article>
         <article className="summary-card summary-card-wide history-top-card">
-          <p className="history-metric-label">Most popular exams</p>
+          <p className="history-metric-label">{t('adminHistory.metrics.topExams.label')}</p>
           {topExams.length === 0 ? (
-            <p className="muted small">No exam data in this filter.</p>
+            <p className="muted small">{t('adminHistory.metrics.topExams.empty')}</p>
           ) : (
             <div className="popularity-list history-top-list">
               {topExams.map(([examName, count]) => (
@@ -327,30 +319,28 @@ export default function AdminHistorySection({ orders }: AdminHistorySectionProps
       <section className="history-table-panel">
         <div className="history-table-heading">
           <div>
-            <p className="eyebrow">Filtered results</p>
-            <h3>Exam items in view</h3>
+            <p className="eyebrow">{t('adminHistory.table.eyebrow')}</p>
+            <h3>{t('adminHistory.table.title')}</h3>
           </div>
-          <p className="muted small">
-            {filteredRows.length} row{filteredRows.length === 1 ? '' : 's'} ready for review.
-          </p>
+          <p className="muted small">{t('adminHistory.table.rowsCount', { count: filteredRows.length })}</p>
         </div>
 
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Exam</th>
-                <th>Vet</th>
-                <th>Clinic</th>
-                <th>Ordered At</th>
-                <th>Value</th>
-                <th>Order</th>
+                <th>{t('adminHistory.table.columns.exam')}</th>
+                <th>{t('adminHistory.table.columns.vet')}</th>
+                <th>{t('adminHistory.table.columns.clinic')}</th>
+                <th>{t('adminHistory.table.columns.orderedAt')}</th>
+                <th>{t('adminHistory.table.columns.value')}</th>
+                <th>{t('adminHistory.table.columns.order')}</th>
               </tr>
             </thead>
             <tbody>
               {filteredRows.length === 0 ? (
                 <tr>
-                  <td colSpan={6}>No exam history found for the selected filters.</td>
+                  <td colSpan={6}>{t('adminHistory.table.empty')}</td>
                 </tr>
               ) : (
                 filteredRows.map((row) => (

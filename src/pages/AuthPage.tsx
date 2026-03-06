@@ -2,9 +2,11 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import BrandLockup from '../components/BrandLockup'
 import { useToast } from '../components/toast/useToast'
+import { useI18n } from '../i18n'
 import { signInWithEmailPassword, signUpVetAccount } from '../services/authService'
 
 export default function AuthPage() {
+  const { t } = useI18n()
   const [mode, setMode] = useState<'login' | 'signup'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -27,9 +29,9 @@ export default function AuthPage() {
       if (error) {
         toast.error(error)
       } else if (data?.needsEmailConfirmation) {
-        toast.info('Account created. Check your email to confirm login.')
+        toast.info(t('auth.toast.accountCreatedCheckEmail'))
       } else {
-        toast.success('Account created and logged in.')
+        toast.success(t('auth.toast.accountCreatedAndSignedIn'))
       }
     } else {
       const { error } = await signInWithEmailPassword(email, password)
@@ -37,7 +39,7 @@ export default function AuthPage() {
       if (error) {
         toast.error(error)
       } else {
-        toast.success('Login successful.')
+        toast.success(t('auth.toast.loginSuccess'))
       }
     }
 
@@ -48,30 +50,25 @@ export default function AuthPage() {
     <main className="page">
       <section className="card auth-shell">
         <aside className="auth-brand-panel">
-          <BrandLockup
-            eyebrow="Modern diagnostic workflow"
-            subtitle="Built for fast intake, clear pricing, and simpler daily operations."
-          />
-          <h1 className="hero-title">A cleaner way to manage veterinary exams.</h1>
-          <p className="hero-copy">
-            The platform is now organized as focused bento-style workspaces, so the next action is always easy to find.
-          </p>
+          <BrandLockup eyebrow={t('auth.brand.eyebrow')} subtitle={t('auth.brand.subtitle')} />
+          <h1 className="hero-title">{t('auth.hero.title')}</h1>
+          <p className="hero-copy">{t('auth.hero.copy')}</p>
 
           <div className="mini-bento-grid">
             <article className="mini-bento-card">
-              <p className="eyebrow">Orders</p>
-              <h2>Fast exam intake</h2>
-              <p className="muted">Submit requests with a clearer flow for patient, owner, and exam selection.</p>
+              <p className="eyebrow">{t('auth.card.orders.eyebrow')}</p>
+              <h2>{t('auth.card.orders.title')}</h2>
+              <p className="muted">{t('auth.card.orders.copy')}</p>
             </article>
             <article className="mini-bento-card">
-              <p className="eyebrow">Pricing</p>
-              <h2>Visible value tables</h2>
-              <p className="muted">Keep current pricing easy to review before each order is sent.</p>
+              <p className="eyebrow">{t('auth.card.pricing.eyebrow')}</p>
+              <h2>{t('auth.card.pricing.title')}</h2>
+              <p className="muted">{t('auth.card.pricing.copy')}</p>
             </article>
             <article className="mini-bento-card">
-              <p className="eyebrow">Support</p>
-              <h2>One place for answers</h2>
-              <p className="muted">Technical questions, operational help, and profile details stay in one interface.</p>
+              <p className="eyebrow">{t('auth.card.support.eyebrow')}</p>
+              <h2>{t('auth.card.support.title')}</h2>
+              <p className="muted">{t('auth.card.support.copy')}</p>
             </article>
           </div>
         </aside>
@@ -79,72 +76,70 @@ export default function AuthPage() {
         <section className="auth-form-panel">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">{mode === 'login' ? 'Access your workspace' : 'Create your account'}</p>
-              <h2>{mode === 'login' ? 'Sign in' : 'Join CVDE'}</h2>
+              <p className="eyebrow">{mode === 'login' ? t('auth.heading.loginEyebrow') : t('auth.heading.signupEyebrow')}</p>
+              <h2>{mode === 'login' ? t('auth.heading.loginTitle') : t('auth.heading.signupTitle')}</h2>
             </div>
             <p className="muted">
-              {mode === 'login'
-                ? 'Use your registered email to continue.'
-                : 'Create a veterinarian login and complete your profile after access.'}
+              {mode === 'login' ? t('auth.heading.loginCopy') : t('auth.heading.signupCopy')}
             </p>
           </div>
 
-          <div className="auth-tabs" role="tablist" aria-label="Auth mode">
+          <div className="auth-tabs" role="tablist" aria-label={t('auth.tabs.aria')}>
             <button
               className={mode === 'login' ? 'tab active' : 'tab'}
               type="button"
               onClick={() => setMode('login')}
             >
-              Login
+              {t('auth.tabs.login')}
             </button>
             <button
               className={mode === 'signup' ? 'tab active' : 'tab'}
               type="button"
               onClick={() => setMode('signup')}
             >
-              Sign up
+              {t('auth.tabs.signup')}
             </button>
           </div>
 
           <form className="form" onSubmit={handleSubmit}>
             {mode === 'signup' ? (
               <label>
-                Full name
+                {t('auth.form.fullName')}
                 <input
                   required
                   type="text"
                   value={fullName}
                   onChange={(event) => setFullName(event.target.value)}
-                  placeholder="Dr. Jane Smith"
+                  placeholder={t('auth.form.fullNamePlaceholder')}
                 />
               </label>
             ) : null}
 
             <label>
-              Email
+              {t('auth.form.email')}
               <input
                 required
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                placeholder="you@clinic.com"
+                placeholder={t('auth.form.emailPlaceholder')}
               />
             </label>
 
             <label>
-              Password
+              {t('auth.form.password')}
               <input
                 required
                 minLength={6}
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                placeholder="Minimum 6 characters"
+                placeholder={t('auth.form.passwordPlaceholder')}
               />
             </label>
 
             <button disabled={loading} type="submit">
-              {loading ? 'Please wait...' : mode === 'login' ? 'Login' : 'Create account'}
+              {loading ? t('auth.form.submitLoading') : mode === 'login' ? t('auth.form.submitLogin') : t('auth.form.submitSignup')}
             </button>
           </form>
         </section>

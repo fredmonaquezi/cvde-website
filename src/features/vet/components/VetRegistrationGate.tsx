@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { useToast } from '../../../components/toast/useToast'
+import { useI18n } from '../../../i18n'
 import { completeVetRegistration } from '../../../services/authService'
 import type { Profile, VetProfessionalType } from '../../../types/app'
 import {
@@ -21,6 +22,7 @@ type VetRegistrationGateProps = {
 }
 
 export default function VetRegistrationGate({ profile, session, onProfileUpdated }: VetRegistrationGateProps) {
+  const { t } = useI18n()
   const [fullName, setFullName] = useState(profile.full_name ?? '')
   const [crmv, setCrmv] = useState(profile.crmv ?? '')
   const [ssn, setSsn] = useState(formatSsn(profile.ssn ?? ''))
@@ -35,22 +37,22 @@ export default function VetRegistrationGate({ profile, session, onProfileUpdated
     event.preventDefault()
 
     if (!fullName.trim() || !crmv.trim() || !ssn.trim() || !phone.trim() || !professionalType) {
-      toast.error('Please fill all required registration fields.')
+      toast.error(t('vetRegistration.validation.requiredFields'))
       return
     }
 
     if (toDigitsOnly(ssn).length !== 11) {
-      toast.error('Social Security Number must have 11 digits.')
+      toast.error(t('vetRegistration.validation.cpfLength'))
       return
     }
 
     if (toDigitsOnly(phone).length !== 11) {
-      toast.error('Phone Number must have 11 digits.')
+      toast.error(t('vetRegistration.validation.phoneLength'))
       return
     }
 
     if (professionalType === 'clinic' && (!clinicName.trim() || !isClinicAddressComplete(clinicAddress))) {
-      toast.error('Please provide the full clinic address, including street, number, neighborhood, city, and state.')
+      toast.error(t('vetRegistration.validation.clinicAddressRequired'))
       return
     }
 
@@ -67,12 +69,12 @@ export default function VetRegistrationGate({ profile, session, onProfileUpdated
     setIsSubmitting(false)
 
     if (error || !data) {
-      toast.error(error ?? 'Failed to complete registration.')
+      toast.error(error ?? t('vetRegistration.validation.submitError'))
       return
     }
 
     onProfileUpdated(data)
-    toast.success('Registration completed successfully.')
+    toast.success(t('vetRegistration.toast.success'))
   }
 
   const updateClinicAddressField = (field: keyof ClinicAddressFields, value: string) => {
@@ -84,15 +86,17 @@ export default function VetRegistrationGate({ profile, session, onProfileUpdated
 
   return (
     <section className="section registration-gate">
-      <h2>Complete Your Registration</h2>
-      <p className="muted small">Before using the platform, please complete your professional profile.</p>
-      <p className="muted small">Fields with <span className="field-required">*</span> are required.</p>
+      <h2>{t('vetRegistration.title')}</h2>
+      <p className="muted small">{t('vetRegistration.subtitle')}</p>
+      <p className="muted small">
+        {t('common.requiredFieldsPrefix')} <span className="field-required">*</span> {t('common.requiredFieldsSuffix')}
+      </p>
 
       <form className="form" onSubmit={handleSubmit}>
         <div className="grid two">
           <label>
             <span className="field-label">
-              Full Name <span className="field-required">*</span>
+              {t('common.fields.fullName')} <span className="field-required">*</span>
             </span>
             <input required value={fullName} onChange={(event) => setFullName(event.target.value)} />
           </label>
@@ -106,9 +110,7 @@ export default function VetRegistrationGate({ profile, session, onProfileUpdated
 
         <div className="grid two">
           <label>
-              <span className="field-label">
-                Social Security Number <span className="field-required">*</span>
-              </span>
+              <span className="field-label">{t('common.fields.cpf')} <span className="field-required">*</span></span>
               <input
                 required
                 inputMode="numeric"
@@ -119,9 +121,7 @@ export default function VetRegistrationGate({ profile, session, onProfileUpdated
               />
             </label>
             <label>
-              <span className="field-label">
-                Phone Number <span className="field-required">*</span>
-              </span>
+              <span className="field-label">{t('common.fields.phone')} <span className="field-required">*</span></span>
               <input
                 required
                 inputMode="numeric"
@@ -136,13 +136,13 @@ export default function VetRegistrationGate({ profile, session, onProfileUpdated
         <div className="grid two">
           <label>
             <span className="field-label">
-              Email <span className="field-required">*</span>
+              {t('common.fields.email')} <span className="field-required">*</span>
             </span>
             <input readOnly value={session.user.email ?? ''} />
           </label>
           <label>
             <span className="field-label">
-              Work Mode <span className="field-required">*</span>
+              {t('common.fields.workMode')} <span className="field-required">*</span>
             </span>
             <select
               required
@@ -156,9 +156,9 @@ export default function VetRegistrationGate({ profile, session, onProfileUpdated
                 }
               }}
             >
-              <option value="">Select</option>
-              <option value="clinic">Works at a clinic</option>
-              <option value="independent">Independent professional</option>
+              <option value="">{t('common.select')}</option>
+              <option value="clinic">{t('common.workMode.clinic')}</option>
+              <option value="independent">{t('common.workMode.independent')}</option>
             </select>
           </label>
         </div>
@@ -167,7 +167,7 @@ export default function VetRegistrationGate({ profile, session, onProfileUpdated
           <>
             <label>
               <span className="field-label">
-                Clinic Name <span className="field-required">*</span>
+                {t('common.fields.clinicName')} <span className="field-required">*</span>
               </span>
               <input required value={clinicName} onChange={(event) => setClinicName(event.target.value)} />
             </label>
@@ -175,15 +175,15 @@ export default function VetRegistrationGate({ profile, session, onProfileUpdated
             <section className="form-subsection">
               <div className="form-subsection-header">
                 <div>
-                  <h3>Clinic Address</h3>
-                  <p className="muted small">Fill in the complete clinic location for scheduling and collection support.</p>
+                  <h3>{t('common.fields.clinicAddress')}</h3>
+                  <p className="muted small">{t('vetRegistration.clinicAddressHelp')}</p>
                 </div>
               </div>
 
               <div className="grid address-grid-line-one">
                 <label>
                   <span className="field-label">
-                    Street Name <span className="field-required">*</span>
+                    {t('common.fields.street')} <span className="field-required">*</span>
                   </span>
                   <input
                     required
@@ -193,7 +193,7 @@ export default function VetRegistrationGate({ profile, session, onProfileUpdated
                 </label>
                 <label>
                   <span className="field-label">
-                    Number <span className="field-required">*</span>
+                    {t('common.fields.number')} <span className="field-required">*</span>
                   </span>
                   <input
                     required
@@ -206,7 +206,7 @@ export default function VetRegistrationGate({ profile, session, onProfileUpdated
               <div className="grid address-grid-line-two">
                 <label>
                   <span className="field-label">
-                    Neighborhood <span className="field-required">*</span>
+                    {t('common.fields.neighborhood')} <span className="field-required">*</span>
                   </span>
                   <input
                     required
@@ -216,7 +216,7 @@ export default function VetRegistrationGate({ profile, session, onProfileUpdated
                 </label>
                 <label>
                   <span className="field-label">
-                    City <span className="field-required">*</span>
+                    {t('common.fields.city')} <span className="field-required">*</span>
                   </span>
                   <input
                     required
@@ -226,14 +226,14 @@ export default function VetRegistrationGate({ profile, session, onProfileUpdated
                 </label>
                 <label>
                   <span className="field-label">
-                    State <span className="field-required">*</span>
+                    {t('common.fields.state')} <span className="field-required">*</span>
                   </span>
                   <select
                     required
                     value={clinicAddress.state}
                     onChange={(event) => updateClinicAddressField('state', event.target.value)}
                   >
-                    <option value="">Select a state</option>
+                    <option value="">{t('common.selectState')}</option>
                     {BRAZIL_STATE_OPTIONS.map((stateOption) => (
                       <option key={stateOption.value} value={stateOption.value}>
                         {stateOption.label}
@@ -247,7 +247,7 @@ export default function VetRegistrationGate({ profile, session, onProfileUpdated
         ) : null}
 
         <button disabled={isSubmitting} type="submit">
-          {isSubmitting ? 'Saving registration...' : 'Complete Registration'}
+          {isSubmitting ? t('vetRegistration.submit.loading') : t('vetRegistration.submit.default')}
         </button>
       </form>
     </section>

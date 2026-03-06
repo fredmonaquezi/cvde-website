@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useToast } from '../../../components/toast/useToast'
+import { useI18n } from '../../../i18n'
 import { createFaqEntry, toggleFaqEntryActive } from '../../../services/adminService'
 import type { FaqEntry } from '../../../types/app'
 
@@ -10,6 +11,7 @@ type AdminFaqSectionProps = {
 }
 
 export default function AdminFaqSection({ faqEntries, onDataChanged }: AdminFaqSectionProps) {
+  const { t } = useI18n()
   const [faqQuestion, setFaqQuestion] = useState('')
   const [faqAnswer, setFaqAnswer] = useState('')
   const [faqCategory, setFaqCategory] = useState('')
@@ -35,7 +37,7 @@ export default function AdminFaqSection({ faqEntries, onDataChanged }: AdminFaqS
     setFaqQuestion('')
     setFaqAnswer('')
     setFaqCategory('')
-    toast.success('FAQ entry created.')
+    toast.success(t('adminFaq.toast.created'))
     await onDataChanged()
   }
 
@@ -47,7 +49,7 @@ export default function AdminFaqSection({ faqEntries, onDataChanged }: AdminFaqS
       return
     }
 
-    toast.success(entry.active ? 'FAQ disabled.' : 'FAQ enabled.')
+    toast.success(entry.active ? t('adminFaq.toast.disabled') : t('adminFaq.toast.enabled'))
     await onDataChanged()
   }
 
@@ -55,26 +57,26 @@ export default function AdminFaqSection({ faqEntries, onDataChanged }: AdminFaqS
     <section className="section">
       <div className="section-heading">
         <div>
-          <h2>FAQ Management</h2>
-          <p className="muted small">Create support answers and keep the veterinarian knowledge base current and easy to maintain.</p>
+          <h2>{t('adminFaq.title')}</h2>
+          <p className="muted small">{t('adminFaq.subtitle')}</p>
         </div>
       </div>
 
       <div className="history-summary-grid faq-management-stats">
         <article className="summary-card faq-management-stat">
-          <p className="history-metric-label">Active entries</p>
+          <p className="history-metric-label">{t('adminFaq.stats.active.label')}</p>
           <h3 className="history-metric-value">{activeFaqCount}</h3>
-          <p className="muted small">Visible to veterinarians right now</p>
+          <p className="muted small">{t('adminFaq.stats.active.copy')}</p>
         </article>
         <article className="summary-card faq-management-stat">
-          <p className="history-metric-label">Inactive entries</p>
+          <p className="history-metric-label">{t('adminFaq.stats.inactive.label')}</p>
           <h3 className="history-metric-value">{inactiveFaqCount}</h3>
-          <p className="muted small">Saved but hidden from the FAQ view</p>
+          <p className="muted small">{t('adminFaq.stats.inactive.copy')}</p>
         </article>
         <article className="summary-card faq-management-stat">
-          <p className="history-metric-label">Total entries</p>
+          <p className="history-metric-label">{t('adminFaq.stats.total.label')}</p>
           <h3 className="history-metric-value">{faqEntries.length}</h3>
-          <p className="muted small">Current FAQ catalog size</p>
+          <p className="muted small">{t('adminFaq.stats.total.copy')}</p>
         </article>
       </div>
 
@@ -86,11 +88,9 @@ export default function AdminFaqSection({ faqEntries, onDataChanged }: AdminFaqS
           onClick={() => setIsCreateOpen((current) => !current)}
         >
           <span className="faq-create-toggle-copy">
-            <span className="faq-create-toggle-eyebrow">Create FAQ</span>
-            <span className="faq-create-toggle-title">Add a new support answer</span>
-            <span className="faq-create-toggle-subtitle">
-              Use short categories so answers stay easy to scan in the vet portal.
-            </span>
+            <span className="faq-create-toggle-eyebrow">{t('adminFaq.create.eyebrow')}</span>
+            <span className="faq-create-toggle-title">{t('adminFaq.create.title')}</span>
+            <span className="faq-create-toggle-subtitle">{t('adminFaq.create.copy')}</span>
           </span>
           <span aria-hidden="true" className="faq-create-toggle-caret">
             {isCreateOpen ? '˄' : '˅'}
@@ -100,18 +100,18 @@ export default function AdminFaqSection({ faqEntries, onDataChanged }: AdminFaqS
         {isCreateOpen ? (
           <form className="form faq-form admin-faq-form" onSubmit={addFaqEntry}>
             <label>
-              Question
+              {t('adminFaq.form.question')}
               <input required value={faqQuestion} onChange={(event) => setFaqQuestion(event.target.value)} />
             </label>
             <label>
-              Answer
+              {t('adminFaq.form.answer')}
               <textarea required rows={4} value={faqAnswer} onChange={(event) => setFaqAnswer(event.target.value)} />
             </label>
             <label>
-              Category
+              {t('adminFaq.form.category')}
               <input value={faqCategory} onChange={(event) => setFaqCategory(event.target.value)} />
             </label>
-            <button type="submit">Add FAQ</button>
+            <button type="submit">{t('adminFaq.form.submit')}</button>
           </form>
         ) : null}
       </section>
@@ -119,10 +119,10 @@ export default function AdminFaqSection({ faqEntries, onDataChanged }: AdminFaqS
       <section className="faq-management-panel">
         <div className="faq-management-panel-head">
           <div>
-            <p className="eyebrow">Knowledge base</p>
-            <h3>Existing FAQ entries</h3>
+            <p className="eyebrow">{t('adminFaq.catalog.eyebrow')}</p>
+            <h3>{t('adminFaq.catalog.title')}</h3>
           </div>
-          <p className="muted small">{faqEntries.length} entr{faqEntries.length === 1 ? 'y' : 'ies'} ready for review.</p>
+          <p className="muted small">{t('adminFaq.catalog.count', { count: faqEntries.length })}</p>
         </div>
 
         <div className="faq-list faq-list-spacious admin-faq-list">
@@ -130,15 +130,15 @@ export default function AdminFaqSection({ faqEntries, onDataChanged }: AdminFaqS
             <article className="faq-item faq-item-rich admin-faq-item" key={entry.id}>
               <div className="faq-head admin-faq-head">
                 <div className="admin-faq-title-block">
-                  <span className="faq-category-pill">{entry.category ?? 'General'}</span>
+                  <span className="faq-category-pill">{entry.category ?? t('adminFaq.generalCategory')}</span>
                   <h3 className="faq-question">{entry.question}</h3>
                 </div>
                 <div className="admin-faq-status-actions">
                   <span className={entry.active ? 'status status-active' : 'status status-inactive'}>
-                    {entry.active ? 'active' : 'inactive'}
+                    {entry.active ? t('common.statusActive') : t('common.statusInactive')}
                   </span>
                   <button className="secondary" type="button" onClick={() => void toggleFaqActive(entry)}>
-                    {entry.active ? 'Disable' : 'Enable'}
+                    {entry.active ? t('common.disable') : t('common.enable')}
                   </button>
                 </div>
               </div>

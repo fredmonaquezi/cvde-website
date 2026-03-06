@@ -1,4 +1,5 @@
 import logo from '../assets/logo.png'
+import { useI18n } from '../i18n'
 
 type BrandLockupProps = {
   title?: string
@@ -9,12 +10,14 @@ type BrandLockupProps = {
 }
 
 export default function BrandLockup({
-  title = 'CVDE Platform',
+  title,
   subtitle,
   eyebrow,
   compact = false,
   className,
 }: BrandLockupProps) {
+  const { t } = useI18n()
+  const resolvedTitle = title ?? t('brand.defaultTitle')
   const classes = ['brand-lockup', compact ? 'compact' : '', className].filter(Boolean).join(' ')
 
   return (
@@ -24,7 +27,7 @@ export default function BrandLockup({
       </span>
       <span className="brand-copy">
         {eyebrow ? <span className="brand-eyebrow">{eyebrow}</span> : null}
-        <span className="brand-name">{title}</span>
+        <span className="brand-name">{resolvedTitle}</span>
         {subtitle ? <span className="brand-subtitle">{subtitle}</span> : null}
       </span>
     </div>

@@ -1,19 +1,19 @@
 import BrandLockup from '../components/BrandLockup'
+import { useI18n } from '../i18n'
 
 export default function MissingProfilePage({ onSignOut }: { onSignOut: () => Promise<void> }) {
+  const { t } = useI18n()
+
   return (
     <main className="page">
       <section className="card centered-panel">
-        <BrandLockup compact eyebrow="Setup required" subtitle="Your access was created, but the role profile is still missing." />
+        <BrandLockup compact eyebrow={t('missingProfile.eyebrow')} subtitle={t('missingProfile.subtitle')} />
         <div className="empty-state">
-          <h1>Profile not ready</h1>
-          <p className="muted">
-            Your account exists, but the matching role profile is not available yet. Ask CVDE administration to complete the
-            database setup SQL so the role mapping can be created.
-          </p>
+          <h1>{t('missingProfile.title')}</h1>
+          <p className="muted">{t('missingProfile.copy')}</p>
         </div>
         <button type="button" onClick={onSignOut}>
-          Sign out
+          {t('common.signOut')}
         </button>
       </section>
     </main>

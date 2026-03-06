@@ -14,7 +14,7 @@ export function useVetDashboardData() {
 
     const { data, error } = await fetchVetDashboardData()
     if (error || !data) {
-      setLoadError(error ?? 'Failed to load data.')
+      setLoadError(error ?? 'Não foi possível carregar os dados. Tente novamente.')
       setIsLoading(false)
       return
     }

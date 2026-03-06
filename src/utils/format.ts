@@ -1,8 +1,8 @@
 import type { SelectedExam } from '../types/app'
 
-const currencyFormatter = new Intl.NumberFormat('en-US', {
+const currencyFormatter = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
-  currency: 'USD',
+  currency: 'BRL',
 })
 
 export function formatCurrency(value: number): string {
@@ -14,7 +14,7 @@ export function formatDateTime(value: string | null): string {
     return '-'
   }
 
-  return new Date(value).toLocaleString()
+  return new Date(value).toLocaleString('pt-BR')
 }
 
 export function toDateTimeLocalValue(value: string | null): string {
@@ -58,8 +58,8 @@ export function parseSelectedExams(value: unknown): SelectedExam[] {
 }
 
 export function formatDoctorName(fullName: string | null): string {
-  const baseName = fullName?.trim() || 'Doctor'
-  return /^dr\.?/i.test(baseName) ? baseName : `Dr. ${baseName}`
+  const baseName = fullName?.trim() || 'Doutor(a)'
+  return /^dr(\.|a\.)?/i.test(baseName) ? baseName : `Dr(a). ${baseName}`
 }
 
 export function toDigitsOnly(value: string): string {
